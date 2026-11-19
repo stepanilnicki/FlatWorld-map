@@ -1,0 +1,341 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>FlatWorld Server Map</title>
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: system-ui, -apple-system, sans-serif;
+      background: #141815;
+      color: #eef3ee;
+      min-height: 100vh;
+      display: flex;
+      gap: 20px;
+      padding: 18px;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .map-wrapper {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      max-height: calc(100vh - 36px);
+      max-width: calc(100vw - 340px);
+    }
+
+    #mapCanvas {
+      background: #4e9a46;
+      border: 2px solid #2b4f28;
+      border-radius: 6px;
+      box-shadow: 0 12px 32px rgba(0, 0, 0, 0.45);
+      cursor: pointer;
+      display: block;
+    }
+
+    .sidebar {
+      width: 280px;
+      background: #1d241f;
+      border: 1px solid #2e3a31;
+      border-radius: 10px;
+      padding: 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+
+    .sidebar h1 {
+      font-size: 17px;
+      font-weight: 600;
+    }
+
+    .scale-note {
+      font-size: 12px;
+      color: #a4b5a8;
+      line-height: 1.4;
+    }
+
+    .marker-list {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .marker-btn {
+      width: 100%;
+      text-align: left;
+      background: #263029;
+      color: #eef3ee;
+      border: 1px solid #38473c;
+      border-radius: 6px;
+      padding: 8px 10px;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+    }
+
+    .marker-btn:hover,
+    .marker-btn.active {
+      background: #35473a;
+      border-color: #7cc474;
+    }
+
+    .info-card {
+      background: #141915;
+      border: 1px solid #313f35;
+      border-radius: 8px;
+      padding: 12px;
+      font-size: 13px;
+      line-height: 1.5;
+      min-height: 82px;
+    }
+
+    .info-card .empty {
+      color: #8b9c8f;
+      font-size: 12px;
+    }
+
+    .info-title {
+      font-weight: 700;
+      font-size: 14px;
+      color: #9be394;
+      margin-bottom: 4px;
+    }
+
+    .info-coords {
+      font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+      font-size: 12px;
+      color: #d6e2d8;
+    }
+  </style>
+</head>
+<body>
+  <div class="map-wrapper">
+    <canvas id="mapCanvas"></canvas>
+  </div>
+
+  <aside class="sidebar">
+    <div>
+      <h1>World Map</h1>
+      <div class="scale-note">Scale: 1 px = 85 blocks</div>
+    </div>
+
+    <div class="marker-list" id="markerList"></div>
+
+    <div class="info-card" id="infoCard">
+      <div class="empty">Click on a marker on the map or in the list to view the full name and coordinates.</div>
+    </div>
+  </aside>
+
+  <script>
+    // Границы мира по осям X и Z
+    const MIN_X = -30912;
+    const MAX_X = 30927;
+    const MIN_Z = -30912;
+    const MAX_Z = 30927;
+
+    // Фиксированный масштаб: блоков в 1 пикселе
+    const BLOCKS_PER_PX = 85;
+
+    const worldWidth = MAX_X - MIN_X;   // 61839
+    const worldHeight = MAX_Z - MIN_Z; // 61839
+
+    const canvas = document.getElementById("mapCanvas");
+    const ctx = canvas.getContext("2d");
+    const markerListEl = document.getElementById("markerList");
+    const infoCardEl = document.getElementById("infoCard");
+
+    const markers = [
+      {
+        id: "zero",
+        shortName: "0",
+        fullName: "Zero point (X: 0, Z: 0)",
+        x: 0,
+        z: 0,
+        color: "#FF0000"
+      },
+      
+      {
+        id: "spw",
+        shortName: "SPW",
+        fullName: "Current spawn",
+        x: -2208,
+        z: 10599,
+        color: "#20B2AA"
+      },
+
+      {
+        id: "ith",
+        shortName: "ITH",
+        fullName: "Irpinśka Terrytoriaľna Hromada",
+        x: -23105,
+        z: 12000,
+        flag: "ithflag.png"
+      },
+
+      {
+        id: "srb",
+        shortName: "SRB",
+        fullName: "Serbia",
+        x: 29679,
+        z: 10610,
+        flag: "serbia.png",
+        color: "#00008B"
+      },
+
+      {
+        id: "pks",
+        shortName: "PKS",
+        fullName: "Pakistan",
+        x: 24364,
+        z: 8529,
+        flag: "pakistan.png",
+        color: "#006400"
+      }
+
+    ];
+
+    let selectedMarkerId = null;
+    let currentScale = 1 / BLOCKS_PER_PX;
+
+    function fitCanvasToScreen() {
+      const baseW = worldWidth / BLOCKS_PER_PX;
+      const baseH = worldHeight / BLOCKS_PER_PX;
+
+      const maxW = Math.max(240, window.innerWidth - 340);
+      const maxH = Math.max(240, window.innerHeight - 36);
+
+      const fitRatio = Math.min(1, maxW / baseW, maxH / baseH);
+      canvas.width = Math.round(baseW * fitRatio);
+      canvas.height = Math.round(baseH * fitRatio);
+
+      currentScale = canvas.width / worldWidth;
+      drawMap();
+    }
+
+    function worldToCanvas(x, z) {
+      return {
+        px: (x - MIN_X) * currentScale,
+        py: (z - MIN_Z) * currentScale
+      };
+    }
+
+    function drawMap() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+      // Зелёный фон мира
+      ctx.fillStyle = "#4e9a46";
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+      // Компактные метки
+      markers.forEach((m) => {
+        const { px, py } = worldToCanvas(m.x, m.z);
+        const isSelected = m.id === selectedMarkerId;
+        const radius = isSelected ? 5 : 4;
+
+        ctx.beginPath();
+        ctx.arc(px, py, radius, 0, Math.PI * 2);
+        ctx.fillStyle = m.color || "#111111";
+        ctx.fill();
+        ctx.lineWidth = 1.5;
+        ctx.strokeStyle = isSelected ? "#9be394" : "#ffffff";
+        ctx.stroke();
+
+        ctx.font = "600 11px system-ui, -apple-system, sans-serif";
+        ctx.textBaseline = "middle";
+        ctx.textAlign = "left";
+
+        const textWidth = ctx.measureText(m.shortName).width;
+        const margin = 4;
+        const gap = radius + 5;
+
+        // Сначала пробуем поставить справа от кружка
+        let labelX = px + gap;
+
+        // Если справа не влезает — ставим слева от кружка
+        if (labelX + textWidth + margin > canvas.width) {
+          labelX = px - gap - textWidth;
+        }
+
+        // Страховка: не даём уйти ни за левый край (margin), ни за правый
+        labelX = Math.max(margin, Math.min(canvas.width - textWidth - margin, labelX));
+
+        ctx.lineWidth = 3;
+        ctx.strokeStyle = "rgba(20, 24, 21, 0.85)";
+        ctx.strokeText(m.shortName, labelX, py);
+
+        ctx.fillStyle = "#ffffff";
+        ctx.fillText(m.shortName, labelX, py);
+      });
+    }
+
+    function selectMarker(id) {
+      selectedMarkerId = id;
+      const marker = markers.find((m) => m.id === id);
+
+      document.querySelectorAll(".marker-btn").forEach((btn) => {
+        btn.classList.toggle("active", btn.dataset.id === id);
+      });
+
+      if (!marker) {
+        infoCardEl.innerHTML = `<div class="empty">Click on a marker on the map or in the list to view the full name and coordinates.</div>`;
+      } else {
+        const flagHtml = marker.flag
+          ? `<img src="${marker.flag}" alt="${marker.shortName} flag" style="display:block; width:auto; height:36px; max-width:96px; object-fit:contain; border-radius:3px; margin-bottom:8px; border:1px solid #38473c;" />`
+          : "";
+
+        infoCardEl.innerHTML = `
+          ${flagHtml}
+          <div class="info-title">${marker.fullName}</div>
+          <div class="info-coords">Short name: ${marker.shortName}</div>
+          <div class="info-coords">X: ${marker.x}, Z: ${marker.z}</div>
+        `;
+      }
+
+      drawMap();
+    }
+
+    function renderMarkerButtons() {
+      markerListEl.innerHTML = "";
+      markers.forEach((m) => {
+        const btn = document.createElement("button");
+        btn.className = "marker-btn";
+        btn.dataset.id = m.id;
+        btn.textContent = m.shortName;
+        btn.addEventListener("click", () => selectMarker(m.id));
+        markerListEl.appendChild(btn);
+      });
+    }
+
+    canvas.addEventListener("click", (e) => {
+      const rect = canvas.getBoundingClientRect();
+      const clickX = e.clientX - rect.left;
+      const clickY = e.clientY - rect.top;
+
+      let hitMarker = null;
+      for (const m of markers) {
+        const { px, py } = worldToCanvas(m.x, m.z);
+        const dist = Math.hypot(clickX - px, clickY - py);
+        if (dist <= 12) {
+          hitMarker = m;
+          break;
+        }
+      }
+
+      selectMarker(hitMarker ? hitMarker.id : null);
+    });
+
+    window.addEventListener("resize", fitCanvasToScreen);
+
+    renderMarkerButtons();
+    fitCanvasToScreen();
+  </script>
+</body>
+</html>
