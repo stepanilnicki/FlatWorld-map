@@ -5,136 +5,339 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>FlatWorld Server Map</title>
   <style>
-    * {
-      box-sizing: border-box;
-      margin: 0;
-      padding: 0;
-    }
+  :root {
+    color-scheme: dark;
+    --page: #0b110e;
+    --panel: #151e18;
+    --panel-raised: #1b2820;
+    --panel-soft: #202f25;
+    --line: rgba(190, 220, 194, .13);
+    --line-strong: rgba(190, 220, 194, .22);
+    --text: #edf5ee;
+    --muted: #9caf9f;
+    --accent: #9be394;
+    --accent-soft: rgba(155, 227, 148, .12);
+    --shadow: 0 24px 70px rgba(0, 0, 0, .34);
+  }
 
+  * {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+  }
+
+  html {
+    min-height: 100%;
+    background: var(--page);
+  }
+
+  body {
+    min-height: 100vh;
+    min-height: 100dvh;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 320px;
+    align-items: center;
+    gap: clamp(18px, 2.4vw, 36px);
+    padding: clamp(16px, 2.4vw, 34px);
+    color: var(--text);
+    font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    background:
+      radial-gradient(ellipse at 18% 12%, rgba(67, 111, 75, .17), transparent 36%),
+      radial-gradient(ellipse at 85% 88%, rgba(56, 91, 65, .12), transparent 34%),
+      var(--page);
+  }
+
+  .map-wrapper {
+    min-width: 0;
+    min-height: 0;
+    max-width: 100%;
+    max-height: calc(100vh - 48px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+    border: 1px solid rgba(190, 220, 194, .09);
+    border-radius: 22px;
+    background: linear-gradient(145deg, rgba(255,255,255,.035), rgba(255,255,255,.008));
+    box-shadow: var(--shadow);
+    padding: clamp(8px, 1.2vw, 16px);
+  }
+
+  #mapCanvas {
+    display: block;
+    max-width: 100%;
+    max-height: calc(100vh - 80px);
+    height: auto;
+    border: 1px solid rgba(225, 255, 220, .28);
+    border-radius: 12px;
+    background: #4e9a46;
+    box-shadow: 0 12px 34px rgba(0, 0, 0, .32), 0 0 0 5px rgba(255,255,255,.025);
+    cursor: crosshair;
+    touch-action: manipulation;
+  }
+
+  .sidebar {
+    width: 100%;
+    min-width: 0;
+    max-height: calc(100vh - 48px);
+    overflow: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 18px;
+    padding: 22px;
+    border: 1px solid var(--line);
+    border-radius: 20px;
+    background: linear-gradient(155deg, rgba(29, 43, 33, .97), rgba(17, 26, 20, .98));
+    box-shadow: var(--shadow);
+    scrollbar-width: thin;
+    scrollbar-color: #405747 transparent;
+  }
+
+  .sidebar > div:first-child {
+    padding: 2px 2px 16px;
+    border-bottom: 1px solid var(--line);
+  }
+
+  .sidebar h1 {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 8px;
+    color: #f2f8f2;
+    font-size: 21px;
+    line-height: 1.2;
+    font-weight: 750;
+    letter-spacing: -.035em;
+  }
+
+  .sidebar h1::before {
+    content: "";
+    width: 9px;
+    height: 9px;
+    flex: 0 0 9px;
+    border-radius: 50%;
+    background: var(--accent);
+    box-shadow: 0 0 15px rgba(155, 227, 148, .7);
+  }
+
+  .scale-note {
+    color: var(--muted);
+    font-size: 12px;
+    line-height: 1.55;
+    letter-spacing: .015em;
+  }
+
+  .marker-list {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px;
+  }
+
+  .marker-btn {
+    position: relative;
+    min-width: 0;
+    width: 100%;
+    min-height: 42px;
+    padding: 10px 12px;
+    overflow: hidden;
+    border: 1px solid var(--line);
+    border-radius: 11px;
+    background: rgba(255, 255, 255, .035);
+    color: #e5eee6;
+    text-align: left;
+    font: inherit;
+    font-size: 13px;
+    font-weight: 700;
+    letter-spacing: .025em;
+    cursor: pointer;
+    transition: background .18s ease, border-color .18s ease, transform .18s ease, box-shadow .18s ease;
+  }
+
+  .marker-btn::after {
+    content: "↗";
+    position: absolute;
+    top: 50%;
+    right: 11px;
+    color: #77917c;
+    font-size: 12px;
+    opacity: .7;
+    transform: translateY(-50%);
+    transition: color .18s ease, transform .18s ease;
+  }
+
+  .marker-btn:hover {
+    transform: translateY(-1px);
+    border-color: rgba(155, 227, 148, .42);
+    background: var(--accent-soft);
+  }
+
+  .marker-btn:hover::after {
+    color: var(--accent);
+    transform: translate(2px, -50%);
+  }
+
+  .marker-btn.active {
+    border-color: rgba(155, 227, 148, .72);
+    background: linear-gradient(135deg, rgba(116, 176, 108, .24), rgba(116, 176, 108, .09));
+    color: #c9f4c4;
+    box-shadow: inset 0 0 0 1px rgba(155, 227, 148, .08), 0 5px 16px rgba(0,0,0,.12);
+  }
+
+  .marker-btn.active::after {
+    color: var(--accent);
+    opacity: 1;
+  }
+
+  .marker-btn:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 3px;
+  }
+
+  .info-card {
+    min-height: 112px;
+    padding: 16px;
+    border: 1px solid var(--line);
+    border-radius: 14px;
+    background: linear-gradient(145deg, rgba(7, 14, 9, .52), rgba(255,255,255,.025));
+    color: #dce9de;
+    font-size: 13px;
+    line-height: 1.6;
+    overflow-wrap: anywhere;
+  }
+
+  .info-card img {
+    max-width: 100%;
+  }
+
+  .info-card .empty {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    color: var(--muted);
+    font-size: 12px;
+    line-height: 1.65;
+  }
+
+  .info-card .empty::before {
+    content: "ⓘ";
+    flex: 0 0 auto;
+    color: var(--accent);
+    font-size: 15px;
+    line-height: 1.3;
+  }
+
+  .info-title {
+    margin-bottom: 7px;
+    color: var(--accent);
+    font-size: 14px;
+    line-height: 1.4;
+    font-weight: 750;
+  }
+
+  .info-coords {
+    color: #bdcdbf;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    font-size: 11px;
+    line-height: 1.7;
+    overflow-wrap: anywhere;
+  }
+
+  @media (max-width: 900px) {
     body {
-      font-family: system-ui, -apple-system, sans-serif;
-      background: #141815;
-      color: #eef3ee;
-      min-height: 100vh;
-      display: flex;
-      gap: 20px;
-      padding: 18px;
-      align-items: center;
-      justify-content: center;
-    }
-
-    .map-wrapper {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      max-height: calc(100vh - 36px);
-      max-width: calc(100vw - 340px);
-    }
-
-    #mapCanvas {
-      background: #4e9a46;
-      border: 2px solid #2b4f28;
-      border-radius: 6px;
-      box-shadow: 0 12px 32px rgba(0, 0, 0, 0.45);
-      cursor: pointer;
-      display: block;
+      grid-template-columns: minmax(0, 1fr) 280px;
+      gap: 16px;
+      padding: 16px;
     }
 
     .sidebar {
-      width: 280px;
-      background: #1d241f;
-      border: 1px solid #2e3a31;
-      border-radius: 10px;
-      padding: 16px;
+      padding: 17px;
+      gap: 15px;
+    }
+  }
+
+  @media (max-width: 768px) {
+    body {
       display: flex;
       flex-direction: column;
+      align-items: stretch;
+      justify-content: flex-start;
       gap: 14px;
+      padding: max(10px, env(safe-area-inset-top)) 10px max(14px, env(safe-area-inset-bottom));
+    }
+
+    .map-wrapper {
+      width: 100%;
+      max-width: 100%;
+      max-height: 60vh;
+      max-height: 60dvh;
+      min-height: 0;
+      padding: 7px;
+      border-radius: 16px;
+    }
+
+    #mapCanvas {
+      max-width: 100%;
+      max-height: calc(60dvh - 18px);
+      border-radius: 9px;
+    }
+
+    .sidebar {
+      width: 100%;
+      max-height: none;
+      overflow: visible;
+      padding: 17px;
+      gap: 15px;
+      border-radius: 16px;
+    }
+
+    .sidebar > div:first-child {
+      padding-bottom: 13px;
     }
 
     .sidebar h1 {
-      font-size: 17px;
-      font-weight: 600;
-    }
-
-    .scale-note {
-      font-size: 12px;
-      color: #a4b5a8;
-      line-height: 1.4;
+      font-size: 19px;
     }
 
     .marker-list {
-      display: flex;
-      flex-direction: column;
-      gap: 6px;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 7px;
     }
 
     .marker-btn {
-      width: 100%;
-      text-align: left;
-      background: #263029;
-      color: #eef3ee;
-      border: 1px solid #38473c;
-      border-radius: 6px;
-      padding: 8px 10px;
-      font-size: 13px;
-      font-weight: 600;
-      cursor: pointer;
+      min-height: 40px;
+      padding: 9px 10px;
+      font-size: 12px;
     }
 
-    .marker-btn:hover,
-    .marker-btn.active {
-      background: #35473a;
-      border-color: #7cc474;
+    .marker-btn::after {
+      right: 8px;
+      font-size: 10px;
     }
 
     .info-card {
-      background: #141915;
-      border: 1px solid #313f35;
-      border-radius: 8px;
-      padding: 12px;
-      font-size: 13px;
-      line-height: 1.5;
-      min-height: 82px;
+      min-height: 94px;
+      padding: 14px;
+    }
+  }
+
+  @media (max-width: 380px) {
+    .marker-list {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
     }
 
-    .info-card .empty {
-      color: #8b9c8f;
-      font-size: 12px;
+    .sidebar {
+      padding: 14px;
     }
+  }
 
-    .info-title {
-      font-weight: 700;
-      font-size: 14px;
-      color: #9be394;
-      margin-bottom: 4px;
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+      scroll-behavior: auto !important;
+      transition-duration: .01ms !important;
+      animation-duration: .01ms !important;
     }
-
-    .info-coords {
-      font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
-      font-size: 12px;
-      color: #d6e2d8;
-    }
-
-    @media (max-width: 768px) {
-      body {
-        flex-direction: column;
-        align-items: stretch;
-        justify-content: flex-start;
-        padding: 12px;
-        gap: 14px;
-      }
-
-      .map-wrapper {
-        max-width: 100%;
-        max-height: 60vh;
-      }
-
-      .sidebar {
-        width: 100%;
-        padding: 14px;
-      }
-    }
-  </style>
+  }
+</style>
 </head>
 <body>
   <div class="map-wrapper">
@@ -214,6 +417,23 @@
         z: 8529,
         flag: "pakistan.png",
         color: "#006400"
+      },
+      {
+        id: "eml",
+        shortName: "EML",
+        fullName: "Emasland",
+        x: -17023,
+        z: 25780,
+        flag: "emaslandflag.png",
+        color: "#FFFF00"
+      },
+      {
+        id: "bgt",
+        shortName: "BGT",
+        fullName: "Bigtopia",
+        x: -1605,
+        z: 21090,
+        color: "#4682B4"
       }
     ];
 
@@ -250,11 +470,104 @@
     function drawMap() {
       ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-      // Зелёный фон мира
+      // Фон карты
       ctx.fillStyle = "#4e9a46";
       ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-      // Компактные метки
+      // Сетка и координаты
+      const gridStep = 10000;
+      const coordFont = "10px system-ui, -apple-system, sans-serif";
+      const coordColor = "rgba(255, 255, 255, 0.72)";
+      const edgePadding = 5;
+
+      ctx.lineWidth = 1;
+      ctx.font = coordFont;
+      ctx.fillStyle = coordColor;
+      ctx.textBaseline = "middle";
+
+      // Вертикальные линии и подписи X.
+      for (let x = -30000; x <= 30000; x += gridStep) {
+        const { px } = worldToCanvas(x, 0);
+
+        ctx.beginPath();
+        ctx.moveTo(px, 0);
+        ctx.lineTo(px, canvas.height);
+        ctx.strokeStyle = x === 0
+          ? "rgba(255, 255, 255, 0.35)"
+          : "rgba(255, 255, 255, 0.14)";
+        ctx.stroke();
+
+        if (x !== 0) {
+          const label = String(x);
+          const labelWidth = ctx.measureText(label).width;
+
+          // Не даём крайним подписям обрезаться границами canvas.
+          const labelX = Math.max(
+            edgePadding + labelWidth / 2,
+            Math.min(canvas.width - edgePadding - labelWidth / 2, px)
+          );
+
+          ctx.textAlign = "center";
+          ctx.textBaseline = "top";
+          ctx.fillText(label, labelX, 5);
+        }
+      }
+
+      // Горизонтальные линии и подписи Z.
+      for (let z = -30000; z <= 30000; z += gridStep) {
+        const { py } = worldToCanvas(0, z);
+
+        ctx.beginPath();
+        ctx.moveTo(0, py);
+        ctx.lineTo(canvas.width, py);
+        ctx.strokeStyle = z === 0
+          ? "rgba(255, 255, 255, 0.35)"
+          : "rgba(255, 255, 255, 0.14)";
+        ctx.stroke();
+
+        if (z !== 0) {
+          const label = String(z);
+
+          ctx.textBaseline = "middle";
+
+          // Нижняя координата переносится вправо, чтобы не пересекаться
+          // с линейкой масштаба в левом нижнем углу.
+          if (py > canvas.height - 24) {
+            ctx.textAlign = "right";
+            ctx.fillText(label, canvas.width - edgePadding, canvas.height - 12);
+          } else {
+            ctx.textAlign = "left";
+            const labelY = Math.max(
+              8,
+              Math.min(canvas.height - 8, py)
+            );
+            ctx.fillText(label, edgePadding, labelY);
+          }
+        }
+      }
+
+      // Линейка масштаба — без изменений.
+      const scaleBlocks = 10000;
+      const barWidth = scaleBlocks * currentScale;
+      const barX = 12;
+      const barY = canvas.height - 14;
+
+      ctx.strokeStyle = "#ffffff";
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.moveTo(barX, barY - 4);
+      ctx.lineTo(barX, barY);
+      ctx.lineTo(barX + barWidth, barY);
+      ctx.lineTo(barX + barWidth, barY - 4);
+      ctx.stroke();
+
+      ctx.font = "600 10px system-ui, -apple-system, sans-serif";
+      ctx.fillStyle = "#ffffff";
+      ctx.textAlign = "left";
+      ctx.textBaseline = "bottom";
+      ctx.fillText("10 000 blocks", barX, barY - 4);
+
+      // Метки — размеры, подписи и логика оставлены без изменений.
       markers.forEach((m) => {
         const { px, py } = worldToCanvas(m.x, m.z);
         const isSelected = m.id === selectedMarkerId;
@@ -276,15 +589,12 @@
         const margin = 4;
         const gap = radius + 5;
 
-        // Сначала пробуем поставить справа от кружка
         let labelX = px + gap;
 
-        // Если справа не влезает — ставим слева от кружка
         if (labelX + textWidth + margin > canvas.width) {
           labelX = px - gap - textWidth;
         }
 
-        // Страховка: не даём уйти ни за левый край (margin), ни за правый
         labelX = Math.max(margin, Math.min(canvas.width - textWidth - margin, labelX));
 
         ctx.lineWidth = 3;
