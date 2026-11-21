@@ -55,8 +55,8 @@
     }
 
     .map-frame {
-      --axis-left: 48px;
-      --axis-top: 27px;
+      --axis-left: 62px;
+      --axis-top: 38px;
       display: grid;
       grid-template-columns: var(--axis-left) minmax(0, 1fr);
       grid-template-rows: var(--axis-top) minmax(0, 1fr);
@@ -78,8 +78,8 @@
     .axis-x::before {
       content: "X";
       position: absolute;
-      left: 3px;
-      top: 5px;
+      left: 2px;
+      top: 4px;
       color: #9be394;
       font-weight: 800;
       letter-spacing: .04em;
@@ -104,7 +104,7 @@
       text-shadow: 0 1px 3px rgba(0,0,0,.45);
     }
     .axis-x .axis-tick {
-      top: 5px;
+      top: 21px;
       transform: translateX(-50%);
     }
     .axis-z .axis-tick {
@@ -215,7 +215,8 @@
     .marker-btn:focus-visible { outline: 2px solid var(--green); outline-offset: 3px; }
 
     .info-card {
-      min-height: 116px;
+      height: 174px;
+      min-height: 174px;
       padding: 16px;
       border: 1px solid var(--line);
       border-radius: 15px;
@@ -235,6 +236,12 @@
       line-height: 1.65;
     }
     .empty::before { content: "ⓘ"; color: var(--green); font-size: 15px; }
+    .flag-slot {
+      height: 44px;
+      display: flex;
+      align-items: flex-start;
+      margin-bottom: 4px;
+    }
     .info-card img {
       display: block;
       width: auto;
@@ -285,12 +292,13 @@
         width: min(100%, calc(58dvh + 42px));
       }
       .axis { font-size: 9px; }
+      .axis-x .axis-tick { top: 19px; }
       #mapCanvas { border-radius: 11px; }
       .sidebar { padding: 18px; gap: 16px; border-radius: 17px; }
       h1 { font-size: 20px; }
       .marker-list { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
       .marker-btn { min-height: 43px; padding: 9px 10px; font-size: 12px; }
-      .info-card { min-height: 100px; }
+      .info-card { height: 166px; min-height: 166px; }
     }
 
     @media (max-width: 370px) {
@@ -368,8 +376,8 @@
       const stageStyle = getComputedStyle(stage);
       const padX = parseFloat(stageStyle.paddingLeft) + parseFloat(stageStyle.paddingRight);
       const padY = parseFloat(stageStyle.paddingTop) + parseFloat(stageStyle.paddingBottom);
-      const axisLeft = isMobile ? 42 : 48;
-      const axisTop = isMobile ? 24 : 27;
+      const axisLeft = isMobile ? 54 : 62;
+      const axisTop = isMobile ? 34 : 38;
 
       const availableWidth = Math.max(180, stage.clientWidth - padX - axisLeft);
       const availableHeight = isMobile
@@ -401,15 +409,18 @@
 
       const values = [-30000, -20000, -10000, 0, 10000, 20000, 30000];
 
-      values.forEach(value => {
+      values.forEach((value, index) => {
         const x = (value - MIN_X) / worldWidth * viewWidth;
-        const xTick = document.createElement("span");
-        xTick.className = "axis-tick";
-        xTick.textContent = String(value);
-        xTick.style.left = Math.max(2, Math.min(viewWidth - 2, x)) + "px";
-        if (x < 28) { xTick.style.transform = "translateX(0)"; xTick.style.left = Math.max(17, x) + "px"; }
-        else if (x > viewWidth - 28) xTick.style.transform = "translateX(-100%)";
-        axisX.appendChild(xTick);
+        const showX = viewWidth >= 390 || index % 2 === 0;
+        if (showX) {
+          const xTick = document.createElement("span");
+          xTick.className = "axis-tick";
+          xTick.textContent = String(value);
+          xTick.style.left = Math.max(2, Math.min(viewWidth - 2, x)) + "px";
+          if (x < 28) xTick.style.transform = "translateX(0)";
+          else if (x > viewWidth - 28) xTick.style.transform = "translateX(-100%)";
+          axisX.appendChild(xTick);
+        }
 
         const y = (value - MIN_Z) / worldHeight * viewHeight;
         const zTick = document.createElement("span");
@@ -540,13 +551,16 @@
         empty.textContent = "Click a marker on the map or in the list to view its name and coordinates.";
         infoCardEl.appendChild(empty);
       } else {
+        const flagSlot = document.createElement("div");
+        flagSlot.className = "flag-slot";
         if (marker.flag) {
           const image = document.createElement("img");
           image.src = marker.flag;
           image.alt = marker.shortName + " flag";
           image.onerror = () => image.remove();
-          infoCardEl.appendChild(image);
+          flagSlot.appendChild(image);
         }
+        infoCardEl.appendChild(flagSlot);
 
         const title = document.createElement("div");
         title.className = "info-title";
