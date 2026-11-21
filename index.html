@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="theme-color" content="#0b120e">
-  <title>FlatWorld — Server Map 2.5</title>
+  <title>FlatWorld — Server Map 2.6</title>
   <style>
     :root {
       color-scheme: dark;
@@ -297,7 +297,16 @@
       .axis-z::before { left: 5px; top: 3px; }
       .axis-z .axis-tick { right: 9px; font-size: 9px; }
       #mapCanvas { border-radius: 11px; }
-      .sidebar { padding: 18px; gap: 16px; border-radius: 17px; }
+      /* Keep the entire panel the same width for every marker.
+         Previously align-self:center + auto width made long names like ITH
+         widen the whole sidebar while short names shrank it. */
+      .sidebar {
+        width: min(100%, 288px);
+        align-self: center;
+        padding: 18px;
+        gap: 16px;
+        border-radius: 17px;
+      }
       h1 { font-size: 20px; }
       .marker-list { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
       .marker-btn { min-height: 43px; padding: 9px 10px; font-size: 12px; }
@@ -325,7 +334,7 @@
 
   <aside class="sidebar">
     <header class="heading">
-      <h1>World Map <span style="font-size:11px;color:#9eb1a1;font-weight:500">v2.5</span></h1>
+      <h1>World Map <span style="font-size:11px;color:#9eb1a1;font-weight:500">v2.6</span></h1>
       <div class="scale-note">Scale: 1 px = 85 blocks</div>
     </header>
 
