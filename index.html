@@ -1,487 +1,423 @@
 <!DOCTYPE html>
-<html lang="ru">
+<html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>FlatWorld Server Map</title>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#0b120e">
+  <title>FlatWorld — Server Map</title>
   <style>
-  :root {
-    color-scheme: dark;
-    --page: #0b110e;
-    --panel: #151e18;
-    --panel-raised: #1b2820;
-    --panel-soft: #202f25;
-    --line: rgba(190, 220, 194, .13);
-    --line-strong: rgba(190, 220, 194, .22);
-    --text: #edf5ee;
-    --muted: #9caf9f;
-    --accent: #9be394;
-    --accent-soft: rgba(155, 227, 148, .12);
-    --shadow: 0 24px 70px rgba(0, 0, 0, .34);
-  }
+    :root {
+      color-scheme: dark;
+      --bg: #0b120e;
+      --surface: #131e17;
+      --surface-2: #19271e;
+      --surface-3: #203328;
+      --line: rgba(210, 235, 214, .13);
+      --line-strong: rgba(210, 235, 214, .22);
+      --text: #f0f6f0;
+      --muted: #9eb1a1;
+      --green: #9be394;
+      --green-dim: rgba(155, 227, 148, .13);
+      --shadow: 0 24px 70px rgba(0, 0, 0, .30);
+    }
 
-  * {
-    box-sizing: border-box;
-    margin: 0;
-    padding: 0;
-  }
-
-  html {
-    min-height: 100%;
-    background: var(--page);
-  }
-
-  body {
-    min-height: 100vh;
-    min-height: 100dvh;
-    display: grid;
-    grid-template-columns: minmax(0, 1fr) 320px;
-    align-items: center;
-    gap: clamp(18px, 2.4vw, 36px);
-    padding: clamp(16px, 2.4vw, 34px);
-    color: var(--text);
-    font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-    background:
-      radial-gradient(ellipse at 18% 12%, rgba(67, 111, 75, .17), transparent 36%),
-      radial-gradient(ellipse at 85% 88%, rgba(56, 91, 65, .12), transparent 34%),
-      var(--page);
-  }
-
-  .map-wrapper {
-    min-width: 0;
-    min-height: 0;
-    max-width: 100%;
-    max-height: calc(100vh - 48px);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    overflow: hidden;
-    border: 1px solid rgba(190, 220, 194, .09);
-    border-radius: 22px;
-    background: linear-gradient(145deg, rgba(255,255,255,.035), rgba(255,255,255,.008));
-    box-shadow: var(--shadow);
-    padding: clamp(8px, 1.2vw, 16px);
-  }
-
-  #mapCanvas {
-    display: block;
-    max-width: 100%;
-    max-height: calc(100vh - 80px);
-    height: auto;
-    border: 1px solid rgba(225, 255, 220, .28);
-    border-radius: 12px;
-    background: #4e9a46;
-    box-shadow: 0 12px 34px rgba(0, 0, 0, .32), 0 0 0 5px rgba(255,255,255,.025);
-    cursor: crosshair;
-    touch-action: manipulation;
-  }
-
-  .sidebar {
-    width: 100%;
-    min-width: 0;
-    max-height: calc(100vh - 48px);
-    overflow: auto;
-    display: flex;
-    flex-direction: column;
-    gap: 18px;
-    padding: 22px;
-    border: 1px solid var(--line);
-    border-radius: 20px;
-    background: linear-gradient(155deg, rgba(29, 43, 33, .97), rgba(17, 26, 20, .98));
-    box-shadow: var(--shadow);
-    scrollbar-width: thin;
-    scrollbar-color: #405747 transparent;
-  }
-
-  .sidebar > div:first-child {
-    padding: 2px 2px 16px;
-    border-bottom: 1px solid var(--line);
-  }
-
-  .sidebar h1 {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    margin-bottom: 8px;
-    color: #f2f8f2;
-    font-size: 21px;
-    line-height: 1.2;
-    font-weight: 750;
-    letter-spacing: -.035em;
-  }
-
-  .sidebar h1::before {
-    content: "";
-    width: 9px;
-    height: 9px;
-    flex: 0 0 9px;
-    border-radius: 50%;
-    background: var(--accent);
-    box-shadow: 0 0 15px rgba(155, 227, 148, .7);
-  }
-
-  .scale-note {
-    color: var(--muted);
-    font-size: 12px;
-    line-height: 1.55;
-    letter-spacing: .015em;
-  }
-
-  .marker-list {
-    display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 8px;
-  }
-
-  .marker-btn {
-    position: relative;
-    min-width: 0;
-    width: 100%;
-    min-height: 42px;
-    padding: 10px 12px;
-    overflow: hidden;
-    border: 1px solid var(--line);
-    border-radius: 11px;
-    background: rgba(255, 255, 255, .035);
-    color: #e5eee6;
-    text-align: left;
-    font: inherit;
-    font-size: 13px;
-    font-weight: 700;
-    letter-spacing: .025em;
-    cursor: pointer;
-    transition: background .18s ease, border-color .18s ease, transform .18s ease, box-shadow .18s ease;
-  }
-
-  .marker-btn::after {
-    content: "↗";
-    position: absolute;
-    top: 50%;
-    right: 11px;
-    color: #77917c;
-    font-size: 12px;
-    opacity: .7;
-    transform: translateY(-50%);
-    transition: color .18s ease, transform .18s ease;
-  }
-
-  .marker-btn:hover {
-    transform: translateY(-1px);
-    border-color: rgba(155, 227, 148, .42);
-    background: var(--accent-soft);
-  }
-
-  .marker-btn:hover::after {
-    color: var(--accent);
-    transform: translate(2px, -50%);
-  }
-
-  .marker-btn.active {
-    border-color: rgba(155, 227, 148, .72);
-    background: linear-gradient(135deg, rgba(116, 176, 108, .24), rgba(116, 176, 108, .09));
-    color: #c9f4c4;
-    box-shadow: inset 0 0 0 1px rgba(155, 227, 148, .08), 0 5px 16px rgba(0,0,0,.12);
-  }
-
-  .marker-btn.active::after {
-    color: var(--accent);
-    opacity: 1;
-  }
-
-  .marker-btn:focus-visible {
-    outline: 2px solid var(--accent);
-    outline-offset: 3px;
-  }
-
-  .info-card {
-    min-height: 112px;
-    padding: 16px;
-    border: 1px solid var(--line);
-    border-radius: 14px;
-    background: linear-gradient(145deg, rgba(7, 14, 9, .52), rgba(255,255,255,.025));
-    color: #dce9de;
-    font-size: 13px;
-    line-height: 1.6;
-    overflow-wrap: anywhere;
-  }
-
-  .info-card img {
-    max-width: 100%;
-  }
-
-  .info-card .empty {
-    display: flex;
-    align-items: flex-start;
-    gap: 10px;
-    color: var(--muted);
-    font-size: 12px;
-    line-height: 1.65;
-  }
-
-  .info-card .empty::before {
-    content: "ⓘ";
-    flex: 0 0 auto;
-    color: var(--accent);
-    font-size: 15px;
-    line-height: 1.3;
-  }
-
-  .info-title {
-    margin-bottom: 7px;
-    color: var(--accent);
-    font-size: 14px;
-    line-height: 1.4;
-    font-weight: 750;
-  }
-
-  .info-coords {
-    color: #bdcdbf;
-    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
-    font-size: 11px;
-    line-height: 1.7;
-    overflow-wrap: anywhere;
-  }
-
-  @media (max-width: 900px) {
+    * { box-sizing: border-box; }
+    html, body { min-height: 100%; }
     body {
-      grid-template-columns: minmax(0, 1fr) 280px;
-      gap: 16px;
-      padding: 16px;
+      margin: 0;
+      min-height: 100vh;
+      min-height: 100dvh;
+      padding: 22px;
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) 330px;
+      gap: 22px;
+      align-items: stretch;
+      color: var(--text);
+      background:
+        radial-gradient(ellipse at 18% 8%, rgba(69, 119, 78, .17), transparent 36%),
+        radial-gradient(ellipse at 90% 90%, rgba(45, 87, 56, .12), transparent 34%),
+        var(--bg);
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+
+    .map-stage {
+      min-width: 0;
+      min-height: calc(100vh - 44px);
+      min-height: calc(100dvh - 44px);
+      display: grid;
+      place-items: center;
+      padding: 18px;
+      overflow: hidden;
+      border: 1px solid var(--line);
+      border-radius: 24px;
+      background: linear-gradient(145deg, rgba(255,255,255,.035), rgba(255,255,255,.008));
+      box-shadow: var(--shadow);
+    }
+
+    .map-frame {
+      --axis-left: 48px;
+      --axis-top: 27px;
+      display: grid;
+      grid-template-columns: var(--axis-left) minmax(0, 1fr);
+      grid-template-rows: var(--axis-top) minmax(0, 1fr);
+      width: min(100%, calc(100dvh - 84px + 48px));
+      min-width: 0;
+      align-items: stretch;
+    }
+    .axis {
+      position: relative;
+      color: #c5d8c5;
+      font: 500 10px/1 system-ui, sans-serif;
+      user-select: none;
+      pointer-events: none;
+    }
+    .axis-x {
+      grid-column: 2;
+      grid-row: 1;
+    }
+    .axis-x::before {
+      content: "X";
+      position: absolute;
+      left: 3px;
+      top: 5px;
+      color: #9be394;
+      font-weight: 800;
+      letter-spacing: .04em;
+    }
+    .axis-z {
+      grid-column: 1;
+      grid-row: 2;
+    }
+    .axis-z::before {
+      content: "Z";
+      position: absolute;
+      left: 5px;
+      top: 3px;
+      color: #9be394;
+      font-weight: 800;
+      letter-spacing: .04em;
+    }
+    .axis-tick {
+      position: absolute;
+      white-space: nowrap;
+      opacity: .9;
+      text-shadow: 0 1px 3px rgba(0,0,0,.45);
+    }
+    .axis-x .axis-tick {
+      top: 5px;
+      transform: translateX(-50%);
+    }
+    .axis-z .axis-tick {
+      right: 7px;
+      transform: translateY(-50%);
+    }
+    #mapCanvas {
+      grid-column: 2;
+      grid-row: 2;
+      display: block;
+      width: 100%;
+      height: 100%;
+      aspect-ratio: 1;
+      border: 1px solid rgba(224, 255, 220, .30);
+      border-radius: 13px;
+      background: #4e9a46;
+      box-shadow: 0 14px 38px rgba(0,0,0,.30), 0 0 0 5px rgba(255,255,255,.025);
+      touch-action: manipulation;
+      cursor: crosshair;
     }
 
     .sidebar {
-      padding: 17px;
-      gap: 15px;
-    }
-  }
-
-  @media (max-width: 768px) {
-    body {
+      min-width: 0;
+      align-self: center;
       display: flex;
       flex-direction: column;
-      align-items: stretch;
-      justify-content: flex-start;
-      gap: 14px;
-      padding: max(10px, env(safe-area-inset-top)) 10px max(14px, env(safe-area-inset-bottom));
+      gap: 19px;
+      padding: 23px;
+      border: 1px solid var(--line);
+      border-radius: 22px;
+      background: linear-gradient(155deg, rgba(27, 42, 32, .98), rgba(17, 27, 21, .98));
+      box-shadow: var(--shadow);
     }
 
-    .map-wrapper {
-      width: 100%;
-      max-width: 100%;
-      max-height: 60vh;
-      max-height: 60dvh;
-      min-height: 0;
-      padding: 7px;
-      border-radius: 16px;
+    .heading {
+      padding: 1px 1px 17px;
+      border-bottom: 1px solid var(--line);
     }
 
-    #mapCanvas {
-      max-width: 100%;
-      max-height: calc(60dvh - 18px);
-      border-radius: 9px;
+    h1 {
+      display: flex;
+      align-items: center;
+      gap: 11px;
+      margin: 0 0 8px;
+      font-size: 22px;
+      line-height: 1.2;
+      letter-spacing: -.035em;
+      font-weight: 760;
     }
 
-    .sidebar {
-      width: 100%;
-      max-height: none;
-      overflow: visible;
-      padding: 17px;
-      gap: 15px;
-      border-radius: 16px;
+    h1::before {
+      content: "";
+      width: 10px;
+      height: 10px;
+      flex: 0 0 10px;
+      border-radius: 50%;
+      background: var(--green);
+      box-shadow: 0 0 17px rgba(155, 227, 148, .7);
     }
 
-    .sidebar > div:first-child {
-      padding-bottom: 13px;
-    }
-
-    .sidebar h1 {
-      font-size: 19px;
+    .scale-note {
+      color: var(--muted);
+      font-size: 12px;
+      letter-spacing: .015em;
     }
 
     .marker-list {
-      grid-template-columns: repeat(3, minmax(0, 1fr));
-      gap: 7px;
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 9px;
     }
 
     .marker-btn {
-      min-height: 40px;
-      padding: 9px 10px;
-      font-size: 12px;
+      min-width: 0;
+      min-height: 44px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      padding: 10px 12px;
+      border: 1px solid var(--line);
+      border-radius: 11px;
+      background: rgba(255,255,255,.035);
+      color: #e8f0e9;
+      font: inherit;
+      font-size: 13px;
+      font-weight: 720;
+      text-align: left;
+      cursor: pointer;
+      transition: background .18s ease, border-color .18s ease, transform .18s ease;
     }
 
-    .marker-btn::after {
-      right: 8px;
-      font-size: 10px;
+    .marker-btn:hover {
+      transform: translateY(-1px);
+      border-color: rgba(155,227,148,.48);
+      background: var(--green-dim);
     }
+
+    .marker-btn.active {
+      border-color: rgba(155,227,148,.78);
+      background: linear-gradient(135deg, rgba(116,176,108,.25), rgba(116,176,108,.09));
+      color: #c9f4c4;
+      box-shadow: inset 0 0 0 1px rgba(155,227,148,.08);
+    }
+
+    .marker-btn .arrow { color: #718b76; font-size: 13px; }
+    .marker-btn.active .arrow { color: var(--green); }
+    .marker-btn:focus-visible { outline: 2px solid var(--green); outline-offset: 3px; }
 
     .info-card {
-      min-height: 94px;
-      padding: 14px;
+      min-height: 116px;
+      padding: 16px;
+      border: 1px solid var(--line);
+      border-radius: 15px;
+      background: linear-gradient(145deg, rgba(5,12,7,.48), rgba(255,255,255,.025));
+      color: #dce9de;
+      font-size: 13px;
+      line-height: 1.6;
+      overflow-wrap: anywhere;
     }
-  }
 
-  @media (max-width: 380px) {
-    .marker-list {
-      grid-template-columns: repeat(2, minmax(0, 1fr));
+    .empty {
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.65;
+    }
+    .empty::before { content: "ⓘ"; color: var(--green); font-size: 15px; }
+    .info-card img {
+      display: block;
+      width: auto;
+      height: 36px;
+      max-width: 110px;
+      object-fit: contain;
+      margin-bottom: 10px;
+      border: 1px solid var(--line-strong);
+      border-radius: 4px;
+    }
+    .info-title {
+      margin-bottom: 7px;
+      color: var(--green);
+      font-size: 15px;
+      font-weight: 760;
+    }
+    .info-coords {
+      color: #bdcdbf;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      font-size: 12px;
+      line-height: 1.75;
     }
 
-    .sidebar {
-      padding: 14px;
+    @media (max-width: 900px) and (min-width: 701px) {
+      body { grid-template-columns: minmax(0, 1fr) 285px; gap: 15px; padding: 15px; }
+      .map-stage { min-height: calc(100dvh - 30px); padding: 12px; }
+      .sidebar { padding: 18px; gap: 15px; }
+      .map-frame { width: min(100%, calc(100dvh - 70px + 48px)); }
     }
-  }
 
-  @media (prefers-reduced-motion: reduce) {
-    *, *::before, *::after {
-      scroll-behavior: auto !important;
-      transition-duration: .01ms !important;
-      animation-duration: .01ms !important;
+    @media (max-width: 700px) {
+      body {
+        display: flex;
+        flex-direction: column;
+        align-items: stretch;
+        gap: 14px;
+        padding: max(10px, env(safe-area-inset-top)) 10px max(16px, env(safe-area-inset-bottom));
+      }
+      .map-stage {
+        min-height: 0;
+        width: 100%;
+        padding: 8px;
+        border-radius: 17px;
+      }
+      .map-frame {
+        --axis-left: 42px;
+        --axis-top: 24px;
+        width: min(100%, calc(58dvh + 42px));
+      }
+      .axis { font-size: 9px; }
+      #mapCanvas { border-radius: 11px; }
+      .sidebar { padding: 18px; gap: 16px; border-radius: 17px; }
+      h1 { font-size: 20px; }
+      .marker-list { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+      .marker-btn { min-height: 43px; padding: 9px 10px; font-size: 12px; }
+      .info-card { min-height: 100px; }
     }
-  }
-</style>
+
+    @media (max-width: 370px) {
+      .marker-list { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .sidebar { padding: 15px; }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after { transition-duration: .01ms !important; }
+    }
+  </style>
 </head>
 <body>
-  <div class="map-wrapper">
-    <canvas id="mapCanvas"></canvas>
-  </div>
+  <main class="map-stage" aria-label="World map">
+    <div class="map-frame" id="mapFrame">
+      <div class="axis axis-x" id="axisX" aria-hidden="true"></div>
+      <div class="axis axis-z" id="axisZ" aria-hidden="true"></div>
+      <canvas id="mapCanvas" aria-label="Interactive FlatWorld map"></canvas>
+    </div>
+  </main>
 
   <aside class="sidebar">
-    <div>
+    <header class="heading">
       <h1>World Map</h1>
       <div class="scale-note">Scale: 1 px = 85 blocks</div>
-    </div>
+    </header>
 
-    <div class="marker-list" id="markerList"></div>
+    <nav class="marker-list" id="markerList" aria-label="Map locations"></nav>
 
-    <div class="info-card" id="infoCard">
-      <div class="empty">Click on a marker on the map or in the list to view the full name and coordinates.</div>
-    </div>
+    <section class="info-card" id="infoCard" aria-live="polite">
+      <div class="empty">Click a marker on the map or in the list to view its name and coordinates.</div>
+    </section>
   </aside>
 
   <script>
-    // Границы мира по осям X и Z
+    "use strict";
+
+    // World boundaries and original map scale.
     const MIN_X = -30912;
     const MAX_X = 30927;
     const MIN_Z = -30912;
     const MAX_Z = 30927;
-
-    // Фиксированный масштаб: блоков в 1 пикселе
     const BLOCKS_PER_PX = 85;
 
-    const worldWidth = MAX_X - MIN_X;   // 61839
-    const worldHeight = MAX_Z - MIN_Z; // 61839
+    const worldWidth = MAX_X - MIN_X;
+    const worldHeight = MAX_Z - MIN_Z;
 
     const canvas = document.getElementById("mapCanvas");
-    const ctx = canvas.getContext("2d");
+    const ctx = canvas.getContext("2d", { alpha: false });
+    const stage = document.querySelector(".map-stage");
+    const mapFrame = document.getElementById("mapFrame");
+    const axisX = document.getElementById("axisX");
+    const axisZ = document.getElementById("axisZ");
     const markerListEl = document.getElementById("markerList");
     const infoCardEl = document.getElementById("infoCard");
 
+    // Original marker data retained.
     const markers = [
-      {
-        id: "zero",
-        shortName: "0",
-        fullName: "Zero point (X: 0, Z: 0)",
-        x: 0,
-        z: 0,
-        color: "#FF0000"
-      },
-      {
-        id: "spw",
-        shortName: "SPW",
-        fullName: "Current spawn",
-        x: -2208,
-        z: 10599,
-        color: "#20B2AA"
-      },
-      {
-        id: "ith",
-        shortName: "ITH",
-        fullName: "Irpinśka Terrytoriaľna Hromada",
-        x: -23105,
-        z: 12000,
-        flag: "ithflag.png"
-      },
-      {
-        id: "srb",
-        shortName: "SRB",
-        fullName: "Serbia",
-        x: 29679,
-        z: 10610,
-        flag: "serbia.png",
-        color: "#00008B"
-      },
-      {
-        id: "pks",
-        shortName: "PKS",
-        fullName: "Pakistan",
-        x: 24364,
-        z: 8529,
-        flag: "pakistan.png",
-        color: "#006400"
-      },
-      {
-        id: "eml",
-        shortName: "EML",
-        fullName: "Emasland",
-        x: -17023,
-        z: 25780,
-        flag: "emaslandflag.png",
-        color: "#FFFF00"
-      },
-      {
-        id: "bgt",
-        shortName: "BGT",
-        fullName: "Bigtopia",
-        x: -1605,
-        z: 21090,
-        color: "#4682B4"
-      }
+      { id: "zero", shortName: "0", fullName: "Zero point (X: 0, Z: 0)", x: 0, z: 0, color: "#FF0000" },
+      { id: "spw", shortName: "SPW", fullName: "Current spawn", x: -2208, z: 10599, color: "#20B2AA" },
+      { id: "ith", shortName: "ITH", fullName: "Irpinśka Terrytoriaľna Hromada", x: -23105, z: 12000, flag: "ithflag.png" },
+      { id: "srb", shortName: "SRB", fullName: "Serbia", x: 29679, z: 10610, flag: "serbia.png", color: "#00008B" },
+      { id: "pks", shortName: "PKS", fullName: "Pakistan", x: 24364, z: 8529, flag: "pakistan.png", color: "#006400" },
+      { id: "eml", shortName: "EML", fullName: "Emasland", x: -17023, z: 25780, flag: "emaslandflag.png", color: "#FFFF00" },
+      { id: "bgt", shortName: "BGT", fullName: "Bigtopia", x: -1605, z: 21090, color: "#4682B4" }
     ];
 
     let selectedMarkerId = null;
+    let viewWidth = 0;
+    let viewHeight = 0;
     let currentScale = 1 / BLOCKS_PER_PX;
-    let logicalCanvasWidth = 0;
-    let logicalCanvasHeight = 0;
 
-    function fitCanvasToScreen() {
-      const baseW = worldWidth / BLOCKS_PER_PX;
-      const baseH = worldHeight / BLOCKS_PER_PX;
-      const wrapper = document.querySelector(".map-wrapper");
-      const wrapperStyle = window.getComputedStyle(wrapper);
+    function resizeCanvas() {
+      const isMobile = window.matchMedia("(max-width: 700px)").matches;
+      const stageStyle = getComputedStyle(stage);
+      const padX = parseFloat(stageStyle.paddingLeft) + parseFloat(stageStyle.paddingRight);
+      const padY = parseFloat(stageStyle.paddingTop) + parseFloat(stageStyle.paddingBottom);
+      const axisLeft = isMobile ? 42 : 48;
+      const axisTop = isMobile ? 24 : 27;
 
-      // Берём фактическое доступное место внутри рамки карты.
-      const availableW = wrapper.clientWidth
-        - parseFloat(wrapperStyle.paddingLeft)
-        - parseFloat(wrapperStyle.paddingRight);
-      const availableH = wrapper.clientHeight
-        - parseFloat(wrapperStyle.paddingTop)
-        - parseFloat(wrapperStyle.paddingBottom);
+      const availableWidth = Math.max(180, stage.clientWidth - padX - axisLeft);
+      const availableHeight = isMobile
+        ? window.innerHeight * 0.58
+        : stage.clientHeight - padY - axisTop;
 
-      const maxW = Math.max(200, availableW || window.innerWidth - 40);
-      const maxH = Math.max(200, Math.min(
-        availableH || window.innerHeight - 40,
-        window.innerWidth <= 768
-          ? window.innerHeight * 0.6 - 18
-          : window.innerHeight - 80
-      ));
+      const side = Math.max(180, Math.floor(Math.min(availableWidth, availableHeight)));
+      viewWidth = side;
+      viewHeight = side;
 
-      const fitRatio = Math.min(1, maxW / baseW, maxH / baseH);
+      mapFrame.style.width = (side + axisLeft) + "px";
+      mapFrame.style.height = (side + axisTop) + "px";
 
-      // CSS-размер остаётся обычным, а внутренний буфер получает
-      // дополнительные пиксели для Retina/HiDPI-экранов.
-      logicalCanvasWidth = Math.round(baseW * fitRatio);
-      logicalCanvasHeight = Math.round(baseH * fitRatio);
+      const dpr = Math.min(window.devicePixelRatio || 1, 3);
+      canvas.style.width = side + "px";
+      canvas.style.height = side + "px";
+      canvas.width = Math.round(side * dpr);
+      canvas.height = Math.round(side * dpr);
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
 
-      const pixelRatio = Math.min(window.devicePixelRatio || 1, 3);
-
-      canvas.style.width = logicalCanvasWidth + "px";
-      canvas.style.height = logicalCanvasHeight + "px";
-      canvas.width = Math.round(logicalCanvasWidth * pixelRatio);
-      canvas.height = Math.round(logicalCanvasHeight * pixelRatio);
-
-      ctx.setTransform(pixelRatio, 0, 0, pixelRatio, 0, 0);
-
-      currentScale = logicalCanvasWidth / worldWidth;
+      currentScale = viewWidth / worldWidth;
+      renderAxes();
       drawMap();
+    }
+
+    function renderAxes() {
+      axisX.replaceChildren();
+      axisZ.replaceChildren();
+
+      const values = [-30000, -20000, -10000, 0, 10000, 20000, 30000];
+
+      values.forEach(value => {
+        const x = (value - MIN_X) / worldWidth * viewWidth;
+        const xTick = document.createElement("span");
+        xTick.className = "axis-tick";
+        xTick.textContent = String(value);
+        xTick.style.left = Math.max(2, Math.min(viewWidth - 2, x)) + "px";
+        if (x < 28) { xTick.style.transform = "translateX(0)"; xTick.style.left = Math.max(17, x) + "px"; }
+        else if (x > viewWidth - 28) xTick.style.transform = "translateX(-100%)";
+        axisX.appendChild(xTick);
+
+        const y = (value - MIN_Z) / worldHeight * viewHeight;
+        const zTick = document.createElement("span");
+        zTick.className = "axis-tick";
+        zTick.textContent = String(value);
+        zTick.style.top = Math.max(17, Math.min(viewHeight - 2, y)) + "px";
+        axisZ.appendChild(zTick);
+      });
     }
 
     function worldToCanvas(x, z) {
@@ -491,205 +427,197 @@
       };
     }
 
-    function drawMap() {
-      ctx.clearRect(0, 0, logicalCanvasWidth, logicalCanvasHeight);
+    function drawCoordinateTag(text, x, y, align, baseline) {
+      ctx.save();
+      ctx.font = "500 11px system-ui, -apple-system, sans-serif";
+      const width = ctx.measureText(text).width;
+      const height = 16;
+      let left = align === "center" ? x - width / 2 : align === "right" ? x - width : x;
+      let top = baseline === "bottom" ? y - height : y;
 
-      // Фон карты
-      ctx.fillStyle = "#4e9a46";
-      ctx.fillRect(0, 0, logicalCanvasWidth, logicalCanvasHeight);
+      left = Math.max(5, Math.min(viewWidth - width - 5, left));
+      top = Math.max(4, Math.min(viewHeight - height - 4, top));
 
-      // Сетка и координаты
-      const gridStep = 10000;
-      const coordFont = "10px system-ui, -apple-system, sans-serif";
-      const coordColor = "rgba(255, 255, 255, 0.72)";
-      const edgePadding = 5;
-
-      ctx.lineWidth = 1;
-      ctx.font = coordFont;
-      ctx.fillStyle = coordColor;
-      ctx.textBaseline = "middle";
-
-      // Вертикальные линии и подписи X.
-      for (let x = -30000; x <= 30000; x += gridStep) {
-        const { px } = worldToCanvas(x, 0);
-
-        ctx.beginPath();
-        ctx.moveTo(px, 0);
-        ctx.lineTo(px, logicalCanvasHeight);
-        ctx.strokeStyle = x === 0
-          ? "rgba(255, 255, 255, 0.35)"
-          : "rgba(255, 255, 255, 0.14)";
-        ctx.stroke();
-
-        if (x !== 0) {
-          const label = String(x);
-          const labelWidth = ctx.measureText(label).width;
-
-          // Не даём крайним подписям обрезаться границами canvas.
-          const labelX = Math.max(
-            edgePadding + labelWidth / 2,
-            Math.min(logicalCanvasWidth - edgePadding - labelWidth / 2, px)
-          );
-
-          ctx.textAlign = "center";
-          ctx.textBaseline = "top";
-          ctx.fillText(label, labelX, 5);
-        }
-      }
-
-      // Горизонтальные линии и подписи Z.
-      for (let z = -30000; z <= 30000; z += gridStep) {
-        const { py } = worldToCanvas(0, z);
-
-        ctx.beginPath();
-        ctx.moveTo(0, py);
-        ctx.lineTo(logicalCanvasWidth, py);
-        ctx.strokeStyle = z === 0
-          ? "rgba(255, 255, 255, 0.35)"
-          : "rgba(255, 255, 255, 0.14)";
-        ctx.stroke();
-
-        if (z !== 0) {
-          const label = String(z);
-
-          ctx.textBaseline = "middle";
-
-          // Нижняя координата переносится вправо, чтобы не пересекаться
-          // с линейкой масштаба в левом нижнем углу.
-          if (py > logicalCanvasHeight - 24) {
-            ctx.textAlign = "right";
-            ctx.fillText(label, logicalCanvasWidth - edgePadding, logicalCanvasHeight - 12);
-          } else {
-            ctx.textAlign = "left";
-            const labelY = Math.max(
-              8,
-              Math.min(logicalCanvasHeight - 8, py)
-            );
-            ctx.fillText(label, edgePadding, labelY);
-          }
-        }
-      }
-
-      // Линейка масштаба — без изменений.
-      const scaleBlocks = 10000;
-      const barWidth = scaleBlocks * currentScale;
-      const barX = 12;
-      const barY = logicalCanvasHeight - 14;
-
-      ctx.strokeStyle = "#ffffff";
-      ctx.lineWidth = 2;
+      // Small translucent backing keeps coordinates readable over the grid.
+      ctx.fillStyle = "rgba(28, 66, 31, .48)";
       ctx.beginPath();
-      ctx.moveTo(barX, barY - 4);
-      ctx.lineTo(barX, barY);
-      ctx.lineTo(barX + barWidth, barY);
-      ctx.lineTo(barX + barWidth, barY - 4);
-      ctx.stroke();
+      ctx.roundRect(left - 3, top - 1, width + 6, height, 4);
+      ctx.fill();
 
-      ctx.font = "600 10px system-ui, -apple-system, sans-serif";
-      ctx.fillStyle = "#ffffff";
+      ctx.fillStyle = "rgba(245, 255, 242, .88)";
       ctx.textAlign = "left";
-      ctx.textBaseline = "bottom";
-      ctx.fillText("10 000 blocks", barX, barY - 4);
+      ctx.textBaseline = "top";
+      ctx.fillText(text, left, top + 1);
+      ctx.restore();
+    }
 
-      // Метки — размеры, подписи и логика оставлены без изменений.
-      markers.forEach((m) => {
-        const { px, py } = worldToCanvas(m.x, m.z);
-        const isSelected = m.id === selectedMarkerId;
-        const radius = isSelected ? 5 : 4;
+    function drawMap() {
+      ctx.clearRect(0, 0, viewWidth, viewHeight);
+      ctx.fillStyle = "#4e9a46";
+      ctx.fillRect(0, 0, viewWidth, viewHeight);
 
+      // Subtle inner edge for a clean map surface.
+      ctx.strokeStyle = "rgba(255,255,255,.18)";
+      ctx.lineWidth = 1;
+      ctx.strokeRect(.5, .5, viewWidth - 1, viewHeight - 1);
+
+      const gridStep = 10000;
+      const gridValues = [];
+      for (let value = -30000; value <= 30000; value += gridStep) gridValues.push(value);
+
+      // Grid lines.
+      gridValues.forEach(value => {
+        const x = worldToCanvas(value, 0).px;
+        const y = worldToCanvas(0, value).py;
+
+        ctx.beginPath();
+        ctx.moveTo(x, 0);
+        ctx.lineTo(x, viewHeight);
+        ctx.strokeStyle = value === 0 ? "rgba(255,255,255,.38)" : "rgba(255,255,255,.15)";
+        ctx.lineWidth = value === 0 ? 1.5 : 1;
+        ctx.stroke();
+
+        ctx.beginPath();
+        ctx.moveTo(0, y);
+        ctx.lineTo(viewWidth, y);
+        ctx.strokeStyle = value === 0 ? "rgba(255,255,255,.38)" : "rgba(255,255,255,.15)";
+        ctx.lineWidth = value === 0 ? 1.5 : 1;
+        ctx.stroke();
+      });
+
+      // Coordinate values are rendered in separate HTML axis gutters,
+      // outside the green map area, so they cannot overlap map markers.
+      // Marker dots and names.
+      markers.forEach(marker => {
+        const { px, py } = worldToCanvas(marker.x, marker.z);
+        const selected = marker.id === selectedMarkerId;
+        const radius = selected ? 5.5 : 4.5;
+
+        ctx.save();
         ctx.beginPath();
         ctx.arc(px, py, radius, 0, Math.PI * 2);
-        ctx.fillStyle = m.color || "#111111";
+        ctx.fillStyle = marker.color || "#111";
         ctx.fill();
-        ctx.lineWidth = 1.5;
-        ctx.strokeStyle = isSelected ? "#9be394" : "#ffffff";
+        ctx.lineWidth = selected ? 2 : 1.5;
+        ctx.strokeStyle = selected ? "#b8ffad" : "#fff";
         ctx.stroke();
 
-        ctx.font = "600 11px system-ui, -apple-system, sans-serif";
+        const fontSize = Math.max(11, Math.min(13, viewWidth / 48));
+        ctx.font = `700 ${fontSize}px system-ui, -apple-system, sans-serif`;
         ctx.textBaseline = "middle";
         ctx.textAlign = "left";
-
-        const textWidth = ctx.measureText(m.shortName).width;
-        const margin = 4;
-        const gap = radius + 5;
-
+        const labelWidth = ctx.measureText(marker.shortName).width;
+        const gap = radius + 6;
         let labelX = px + gap;
-
-        if (labelX + textWidth + margin > logicalCanvasWidth) {
-          labelX = px - gap - textWidth;
-        }
-
-        labelX = Math.max(margin, Math.min(logicalCanvasWidth - textWidth - margin, labelX));
+        if (labelX + labelWidth + 5 > viewWidth) labelX = px - gap - labelWidth;
+        labelX = Math.max(5, Math.min(viewWidth - labelWidth - 5, labelX));
 
         ctx.lineWidth = 3;
-        ctx.strokeStyle = "rgba(20, 24, 21, 0.85)";
-        ctx.strokeText(m.shortName, labelX, py);
-
-        ctx.fillStyle = "#ffffff";
-        ctx.fillText(m.shortName, labelX, py);
+        ctx.lineJoin = "round";
+        ctx.strokeStyle = "rgba(18, 30, 19, .88)";
+        ctx.strokeText(marker.shortName, labelX, py);
+        ctx.fillStyle = "#fff";
+        ctx.fillText(marker.shortName, labelX, py);
+        ctx.restore();
       });
     }
 
     function selectMarker(id) {
       selectedMarkerId = id;
-      const marker = markers.find((m) => m.id === id);
+      const marker = markers.find(item => item.id === id);
 
-      document.querySelectorAll(".marker-btn").forEach((btn) => {
-        btn.classList.toggle("active", btn.dataset.id === id);
+      markerListEl.querySelectorAll(".marker-btn").forEach(button => {
+        const active = button.dataset.id === id;
+        button.classList.toggle("active", active);
+        button.setAttribute("aria-pressed", String(active));
       });
 
-      if (!marker) {
-        infoCardEl.innerHTML = `<div class="empty">Click on a marker on the map or in the list to view the full name and coordinates.</div>`;
-      } else {
-        const flagHtml = marker.flag
-          ? `<img src="${marker.flag}" alt="${marker.shortName} flag" style="display:block; width:auto; height:36px; max-width:96px; object-fit:contain; border-radius:3px; margin-bottom:8px; border:1px solid #38473c;" />`
-          : "";
+      infoCardEl.replaceChildren();
 
-        infoCardEl.innerHTML = `
-          ${flagHtml}
-          <div class="info-title">${marker.fullName}</div>
-          <div class="info-coords">Short name: ${marker.shortName}</div>
-          <div class="info-coords">X: ${marker.x}, Z: ${marker.z}</div>
-        `;
+      if (!marker) {
+        const empty = document.createElement("div");
+        empty.className = "empty";
+        empty.textContent = "Click a marker on the map or in the list to view its name and coordinates.";
+        infoCardEl.appendChild(empty);
+      } else {
+        if (marker.flag) {
+          const image = document.createElement("img");
+          image.src = marker.flag;
+          image.alt = marker.shortName + " flag";
+          image.onerror = () => image.remove();
+          infoCardEl.appendChild(image);
+        }
+
+        const title = document.createElement("div");
+        title.className = "info-title";
+        title.textContent = marker.fullName;
+
+        const shortName = document.createElement("div");
+        shortName.className = "info-coords";
+        shortName.textContent = "Short name: " + marker.shortName;
+
+        const coords = document.createElement("div");
+        coords.className = "info-coords";
+        coords.textContent = `X: ${marker.x}, Z: ${marker.z}`;
+
+        infoCardEl.append(title, shortName, coords);
       }
 
       drawMap();
     }
 
     function renderMarkerButtons() {
-      markerListEl.innerHTML = "";
-      markers.forEach((m) => {
-        const btn = document.createElement("button");
-        btn.className = "marker-btn";
-        btn.dataset.id = m.id;
-        btn.textContent = m.shortName;
-        btn.addEventListener("click", () => selectMarker(m.id));
-        markerListEl.appendChild(btn);
+      markerListEl.replaceChildren();
+      markers.forEach(marker => {
+        const button = document.createElement("button");
+        button.type = "button";
+        button.className = "marker-btn";
+        button.dataset.id = marker.id;
+        button.setAttribute("aria-pressed", "false");
+
+        const name = document.createElement("span");
+        name.textContent = marker.shortName;
+        const arrow = document.createElement("span");
+        arrow.className = "arrow";
+        arrow.textContent = "↗";
+
+        button.append(name, arrow);
+        button.addEventListener("click", () => selectMarker(marker.id));
+        markerListEl.appendChild(button);
       });
     }
 
-    canvas.addEventListener("click", (e) => {
+    canvas.addEventListener("click", event => {
       const rect = canvas.getBoundingClientRect();
-      const clickX = e.clientX - rect.left;
-      const clickY = e.clientY - rect.top;
+      const clickX = (event.clientX - rect.left) * (viewWidth / rect.width);
+      const clickY = (event.clientY - rect.top) * (viewHeight / rect.height);
 
-      let hitMarker = null;
-      for (const m of markers) {
-        const { px, py } = worldToCanvas(m.x, m.z);
-        const dist = Math.hypot(clickX - px, clickY - py);
-        if (dist <= 12) {
-          hitMarker = m;
-          break;
+      let closest = null;
+      let closestDistance = 16;
+
+      markers.forEach(marker => {
+        const { px, py } = worldToCanvas(marker.x, marker.z);
+        const distance = Math.hypot(clickX - px, clickY - py);
+        if (distance < closestDistance) {
+          closest = marker;
+          closestDistance = distance;
         }
-      }
+      });
 
-      selectMarker(hitMarker ? hitMarker.id : null);
+      selectMarker(closest ? closest.id : null);
     });
 
-    window.addEventListener("resize", fitCanvasToScreen);
-
     renderMarkerButtons();
-    fitCanvasToScreen();
+    selectMarker(null);
+
+    // ResizeObserver catches layout changes as well as device rotation.
+    if ("ResizeObserver" in window) {
+      new ResizeObserver(resizeCanvas).observe(stage);
+    } else {
+      window.addEventListener("resize", resizeCanvas);
+    }
+    window.addEventListener("orientationchange", () => setTimeout(resizeCanvas, 100));
+    resizeCanvas();
   </script>
 </body>
 </html>
