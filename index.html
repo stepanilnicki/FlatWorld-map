@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="theme-color" content="#0b120e">
-  <title>FlatWorld — Server Map</title>
+  <title>FlatWorld — Server Map 2.5</title>
   <style>
     :root {
       color-scheme: dark;
@@ -287,18 +287,21 @@
         border-radius: 17px;
       }
       .map-frame {
-        --axis-left: 42px;
-        --axis-top: 24px;
+        --axis-left: 60px;
+        --axis-top: 42px;
         width: min(100%, calc(58dvh + 42px));
       }
       .axis { font-size: 9px; }
-      .axis-x .axis-tick { top: 19px; }
+      .axis-x .axis-tick { top: 26px; font-size: 9px; }
+      .axis-x::before { left: 3px; top: 4px; }
+      .axis-z::before { left: 5px; top: 3px; }
+      .axis-z .axis-tick { right: 9px; font-size: 9px; }
       #mapCanvas { border-radius: 11px; }
       .sidebar { padding: 18px; gap: 16px; border-radius: 17px; }
       h1 { font-size: 20px; }
       .marker-list { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
       .marker-btn { min-height: 43px; padding: 9px 10px; font-size: 12px; }
-      .info-card { height: 166px; min-height: 166px; }
+      .info-card { height: 186px; min-height: 186px; max-height: 186px; overflow: auto; }
     }
 
     @media (max-width: 370px) {
@@ -322,7 +325,7 @@
 
   <aside class="sidebar">
     <header class="heading">
-      <h1>World Map</h1>
+      <h1>World Map <span style="font-size:11px;color:#9eb1a1;font-weight:500">v2.5</span></h1>
       <div class="scale-note">Scale: 1 px = 85 blocks</div>
     </header>
 
@@ -376,8 +379,9 @@
       const stageStyle = getComputedStyle(stage);
       const padX = parseFloat(stageStyle.paddingLeft) + parseFloat(stageStyle.paddingRight);
       const padY = parseFloat(stageStyle.paddingTop) + parseFloat(stageStyle.paddingBottom);
-      const axisLeft = isMobile ? 54 : 62;
-      const axisTop = isMobile ? 34 : 38;
+      const frameStyle = getComputedStyle(mapFrame);
+      const axisLeft = parseFloat(frameStyle.getPropertyValue("--axis-left"));
+      const axisTop = parseFloat(frameStyle.getPropertyValue("--axis-top"));
 
       const availableWidth = Math.max(180, stage.clientWidth - padX - axisLeft);
       const availableHeight = isMobile
@@ -411,14 +415,14 @@
 
       values.forEach((value, index) => {
         const x = (value - MIN_X) / worldWidth * viewWidth;
-        const showX = viewWidth >= 390 || index % 2 === 0;
+        const showX = viewWidth >= 420 || index % 2 === 0;
         if (showX) {
           const xTick = document.createElement("span");
           xTick.className = "axis-tick";
           xTick.textContent = String(value);
-          xTick.style.left = Math.max(2, Math.min(viewWidth - 2, x)) + "px";
-          if (x < 28) xTick.style.transform = "translateX(0)";
-          else if (x > viewWidth - 28) xTick.style.transform = "translateX(-100%)";
+          xTick.style.left = Math.max(0, Math.min(viewWidth, x)) + "px";
+          if (x < 34) xTick.style.transform = "translateX(0)";
+          else if (x > viewWidth - 34) xTick.style.transform = "translateX(-100%)";
           axisX.appendChild(xTick);
         }
 
@@ -426,7 +430,7 @@
         const zTick = document.createElement("span");
         zTick.className = "axis-tick";
         zTick.textContent = String(value);
-        zTick.style.top = Math.max(17, Math.min(viewHeight - 2, y)) + "px";
+        zTick.style.top = Math.max(20, Math.min(viewHeight - 10, y)) + "px";
         axisZ.appendChild(zTick);
       });
     }
