@@ -121,31 +121,32 @@
       display: grid;
       place-items: center;
       padding: 0;
-      border: 1px solid rgba(255,255,255,.18);
+      border: 1px solid rgba(255,255,255,.14);
       border-radius: 10px;
-      background: rgba(12, 22, 15, .72);
-      backdrop-filter: blur(6px);
-      -webkit-backdrop-filter: blur(6px);
-      color: #e8f4e8;
+      background: rgba(12, 22, 15, .22);
+      color: rgba(255,255,255,.85);
+      text-shadow: 0 1px 3px rgba(0,0,0,.6);
+      opacity: .8;
       font: 600 18px/1 system-ui, sans-serif;
       cursor: pointer;
       transition: background .15s, border-color .15s;
     }
-    .tool-btn:hover { background: rgba(40, 70, 46, .85); border-color: rgba(155,227,148,.55); }
-    .tool-btn.active { background: rgba(155,227,148,.25); border-color: var(--green); color: var(--green); }
+    .tool-btn svg { filter: drop-shadow(0 1px 2px rgba(0,0,0,.6)); }
+    .tool-btn:hover, .tool-btn:active { opacity: 1; background: rgba(40, 70, 46, .6); border-color: rgba(155,227,148,.55); }
+    .tool-btn.active { opacity: 1; background: rgba(155,227,148,.28); border-color: var(--green); color: var(--green); }
     .tool-btn:focus-visible { outline: 2px solid var(--green); outline-offset: 2px; }
     .tool-btn svg { width: 18px; height: 18px; }
 
     .readout, .hint {
       position: absolute;
-      padding: 5px 9px;
+      padding: 4px 8px;
       border-radius: 8px;
-      background: rgba(12, 22, 15, .72);
-      backdrop-filter: blur(6px);
-      -webkit-backdrop-filter: blur(6px);
-      border: 1px solid rgba(255,255,255,.12);
+      background: rgba(12, 22, 15, .18);
+      border: 1px solid rgba(255,255,255,.08);
       font: 500 11px/1.4 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
-      color: #dff0dc;
+      color: rgba(255,255,255,.9);
+      text-shadow: 0 1px 3px rgba(0,0,0,.8), 0 0 6px rgba(0,0,0,.5);
+      opacity: .85;
       pointer-events: none;
     }
     .readout { left: 10px; bottom: 10px; }
@@ -321,7 +322,10 @@
       .axis-x .axis-tick { top: 26px; }
       .axis-z .axis-tick { right: 9px; }
       .canvas-wrap { border-radius: 11px; }
-      .tool-btn { width: 40px; height: 40px; }
+      .tools { top: 6px; right: 6px; gap: 4px; }
+      .tool-btn { width: 34px; height: 34px; font-size: 16px; opacity: .7; }
+      .readout { left: 6px; bottom: 6px; font-size: 10px; }
+      .hint { left: 6px; top: 6px; font-size: 11px; }
       .sidebar { width: 100%; max-width: 420px; align-self: center; padding: 18px; gap: 14px; border-radius: 17px; }
       h1 { font-size: 20px; }
       .marker-list { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; max-height: 190px; }
