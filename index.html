@@ -4,14 +4,12 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="theme-color" content="#0b120e">
-  <title>FlatWorld — Server Map 2.6</title>
+  <title>FlatWorld — Server Map 3.0</title>
   <style>
     :root {
       color-scheme: dark;
       --bg: #0b120e;
       --surface: #131e17;
-      --surface-2: #19271e;
-      --surface-3: #203328;
       --line: rgba(210, 235, 214, .13);
       --line-strong: rgba(210, 235, 214, .22);
       --text: #f0f6f0;
@@ -29,7 +27,7 @@
       min-height: 100dvh;
       padding: 22px;
       display: grid;
-      grid-template-columns: minmax(0, 1fr) 330px;
+      grid-template-columns: minmax(0, 1fr) 340px;
       gap: 22px;
       align-items: stretch;
       color: var(--text);
@@ -40,6 +38,7 @@
       font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
     }
 
+    /* ---------- Map ---------- */
     .map-stage {
       min-width: 0;
       min-height: calc(100vh - 44px);
@@ -53,14 +52,12 @@
       background: linear-gradient(145deg, rgba(255,255,255,.035), rgba(255,255,255,.008));
       box-shadow: var(--shadow);
     }
-
     .map-frame {
       --axis-left: 62px;
       --axis-top: 38px;
       display: grid;
       grid-template-columns: var(--axis-left) minmax(0, 1fr);
       grid-template-rows: var(--axis-top) minmax(0, 1fr);
-      width: min(100%, calc(100dvh - 84px + 48px));
       min-width: 0;
       align-items: stretch;
     }
@@ -71,79 +68,104 @@
       user-select: none;
       pointer-events: none;
     }
-    .axis-x {
-      grid-column: 2;
-      grid-row: 1;
-    }
-    .axis-x::before {
+    .axis-x { grid-column: 2; grid-row: 1; }
+    .axis-z { grid-column: 1; grid-row: 2; }
+    .axis-x::before, .axis-z::before {
       content: "X";
       position: absolute;
-      left: 2px;
-      top: 4px;
-      color: #9be394;
+      color: var(--green);
       font-weight: 800;
       letter-spacing: .04em;
     }
-    .axis-z {
-      grid-column: 1;
-      grid-row: 2;
-    }
-    .axis-z::before {
-      content: "Z";
-      position: absolute;
-      left: 5px;
-      top: 3px;
-      color: #9be394;
-      font-weight: 800;
-      letter-spacing: .04em;
-    }
+    .axis-x::before { left: 2px; top: 4px; }
+    .axis-z::before { content: "Z"; left: 5px; top: 3px; }
     .axis-tick {
       position: absolute;
       white-space: nowrap;
       opacity: .9;
       text-shadow: 0 1px 3px rgba(0,0,0,.45);
     }
-    .axis-x .axis-tick {
-      top: 21px;
-      transform: translateX(-50%);
-    }
-    .axis-z .axis-tick {
-      right: 7px;
-      transform: translateY(-50%);
-    }
-    #mapCanvas {
+    .axis-x .axis-tick { top: 21px; transform: translateX(-50%); }
+    .axis-z .axis-tick { right: 7px; transform: translateY(-50%); }
+
+    .canvas-wrap {
       grid-column: 2;
       grid-row: 2;
-      display: block;
-      width: 100%;
-      height: 100%;
-      aspect-ratio: 1;
+      position: relative;
       border: 1px solid rgba(224, 255, 220, .30);
       border-radius: 13px;
-      background: #4e9a46;
+      overflow: hidden;
+      background: #0e1a12;
       box-shadow: 0 14px 38px rgba(0,0,0,.30), 0 0 0 5px rgba(255,255,255,.025);
-      touch-action: manipulation;
-      cursor: crosshair;
     }
+    #mapCanvas {
+      display: block;
+      touch-action: none;       /* we handle pan + pinch ourselves */
+      cursor: grab;
+    }
+    #mapCanvas.dragging { cursor: grabbing; }
+    #mapCanvas.pointer { cursor: pointer; }
+    #mapCanvas.ruler { cursor: crosshair; }
 
+    .tools {
+      position: absolute;
+      top: 10px;
+      right: 10px;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+    .tool-btn {
+      width: 36px;
+      height: 36px;
+      display: grid;
+      place-items: center;
+      padding: 0;
+      border: 1px solid rgba(255,255,255,.18);
+      border-radius: 10px;
+      background: rgba(12, 22, 15, .72);
+      backdrop-filter: blur(6px);
+      -webkit-backdrop-filter: blur(6px);
+      color: #e8f4e8;
+      font: 600 18px/1 system-ui, sans-serif;
+      cursor: pointer;
+      transition: background .15s, border-color .15s;
+    }
+    .tool-btn:hover { background: rgba(40, 70, 46, .85); border-color: rgba(155,227,148,.55); }
+    .tool-btn.active { background: rgba(155,227,148,.25); border-color: var(--green); color: var(--green); }
+    .tool-btn:focus-visible { outline: 2px solid var(--green); outline-offset: 2px; }
+    .tool-btn svg { width: 18px; height: 18px; }
+
+    .readout, .hint {
+      position: absolute;
+      padding: 5px 9px;
+      border-radius: 8px;
+      background: rgba(12, 22, 15, .72);
+      backdrop-filter: blur(6px);
+      -webkit-backdrop-filter: blur(6px);
+      border: 1px solid rgba(255,255,255,.12);
+      font: 500 11px/1.4 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      color: #dff0dc;
+      pointer-events: none;
+    }
+    .readout { left: 10px; bottom: 10px; }
+    .hint { left: 10px; top: 10px; max-width: calc(100% - 70px); font-family: inherit; color: var(--green); }
+    .hint[hidden] { display: none; }
+
+    /* ---------- Sidebar ---------- */
     .sidebar {
       min-width: 0;
       align-self: center;
       display: flex;
       flex-direction: column;
-      gap: 19px;
+      gap: 16px;
       padding: 23px;
       border: 1px solid var(--line);
       border-radius: 22px;
       background: linear-gradient(155deg, rgba(27, 42, 32, .98), rgba(17, 27, 21, .98));
       box-shadow: var(--shadow);
     }
-
-    .heading {
-      padding: 1px 1px 17px;
-      border-bottom: 1px solid var(--line);
-    }
-
+    .heading { padding: 1px 1px 15px; border-bottom: 1px solid var(--line); }
     h1 {
       display: flex;
       align-items: center;
@@ -154,36 +176,45 @@
       letter-spacing: -.035em;
       font-weight: 760;
     }
-
     h1::before {
       content: "";
-      width: 10px;
-      height: 10px;
-      flex: 0 0 10px;
+      width: 10px; height: 10px; flex: 0 0 10px;
       border-radius: 50%;
       background: var(--green);
       box-shadow: 0 0 17px rgba(155, 227, 148, .7);
     }
+    h1 small { font-size: 11px; color: var(--muted); font-weight: 500; letter-spacing: 0; }
+    .scale-note { color: var(--muted); font-size: 12px; letter-spacing: .015em; }
 
-    .scale-note {
-      color: var(--muted);
-      font-size: 12px;
-      letter-spacing: .015em;
+    .search {
+      width: 100%;
+      padding: 10px 12px;
+      border: 1px solid var(--line);
+      border-radius: 11px;
+      background: rgba(255,255,255,.035);
+      color: var(--text);
+      font: inherit;
+      font-size: 13px;
     }
+    .search::placeholder { color: #6f8774; }
+    .search:focus { outline: 2px solid rgba(155,227,148,.6); outline-offset: 1px; }
 
     .marker-list {
       display: grid;
       grid-template-columns: repeat(2, minmax(0, 1fr));
       gap: 9px;
+      max-height: 232px;
+      overflow-y: auto;
+      padding-right: 2px;
+      scrollbar-width: thin;
+      scrollbar-color: #2f4636 transparent;
     }
-
     .marker-btn {
       min-width: 0;
       min-height: 44px;
       display: flex;
       align-items: center;
-      justify-content: space-between;
-      gap: 8px;
+      gap: 9px;
       padding: 10px 12px;
       border: 1px solid var(--line);
       border-radius: 11px;
@@ -196,27 +227,26 @@
       cursor: pointer;
       transition: background .18s ease, border-color .18s ease, transform .18s ease;
     }
-
-    .marker-btn:hover {
-      transform: translateY(-1px);
-      border-color: rgba(155,227,148,.48);
-      background: var(--green-dim);
+    .marker-btn[hidden] { display: none; }
+    .marker-btn .dot {
+      width: 10px; height: 10px; flex: 0 0 10px;
+      border-radius: 50%;
+      border: 1.5px solid #fff;
     }
-
+    .marker-btn .name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .marker-btn .arrow { color: #718b76; font-size: 13px; }
+    .marker-btn:hover { transform: translateY(-1px); border-color: rgba(155,227,148,.48); background: var(--green-dim); }
     .marker-btn.active {
       border-color: rgba(155,227,148,.78);
       background: linear-gradient(135deg, rgba(116,176,108,.25), rgba(116,176,108,.09));
       color: #c9f4c4;
-      box-shadow: inset 0 0 0 1px rgba(155,227,148,.08);
     }
-
-    .marker-btn .arrow { color: #718b76; font-size: 13px; }
     .marker-btn.active .arrow { color: var(--green); }
     .marker-btn:focus-visible { outline: 2px solid var(--green); outline-offset: 3px; }
+    .no-results { grid-column: 1 / -1; color: var(--muted); font-size: 12px; padding: 6px 2px; }
 
     .info-card {
-      height: 174px;
-      min-height: 174px;
+      min-height: 218px;
       padding: 16px;
       border: 1px solid var(--line);
       border-radius: 15px;
@@ -226,50 +256,55 @@
       line-height: 1.6;
       overflow-wrap: anywhere;
     }
-
-    .empty {
-      display: flex;
-      align-items: flex-start;
-      gap: 10px;
-      color: var(--muted);
-      font-size: 12px;
-      line-height: 1.65;
-    }
+    .empty { display: flex; align-items: flex-start; gap: 10px; color: var(--muted); font-size: 12px; line-height: 1.65; }
     .empty::before { content: "ⓘ"; color: var(--green); font-size: 15px; }
-    .flag-slot {
-      height: 44px;
-      display: flex;
-      align-items: flex-start;
-      margin-bottom: 4px;
-    }
+    .flag-slot { height: 44px; display: flex; align-items: flex-start; margin-bottom: 4px; }
     .info-card img {
       display: block;
-      width: auto;
-      height: 36px;
-      max-width: 110px;
+      width: auto; height: 36px; max-width: 110px;
       object-fit: contain;
       margin-bottom: 10px;
       border: 1px solid var(--line-strong);
       border-radius: 4px;
     }
-    .info-title {
-      margin-bottom: 7px;
-      color: var(--green);
-      font-size: 15px;
-      font-weight: 760;
-    }
+    .info-title { margin-bottom: 6px; color: var(--green); font-size: 15px; font-weight: 760; }
     .info-coords {
       color: #bdcdbf;
       font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
       font-size: 12px;
       line-height: 1.75;
     }
+    .info-coords b { color: #e6f3e6; font-weight: 600; }
+    .actions { display: flex; gap: 8px; margin-top: 12px; }
+    .action-btn {
+      flex: 1;
+      padding: 8px 10px;
+      border: 1px solid var(--line-strong);
+      border-radius: 9px;
+      background: rgba(255,255,255,.04);
+      color: #e6f3e6;
+      font: inherit;
+      font-size: 12px;
+      font-weight: 650;
+      cursor: pointer;
+      transition: background .15s, border-color .15s;
+    }
+    .action-btn:hover { background: var(--green-dim); border-color: rgba(155,227,148,.5); }
+    .action-btn:focus-visible { outline: 2px solid var(--green); outline-offset: 2px; }
+
+    .keys { color: #6f8774; font-size: 11px; line-height: 1.6; }
+    .keys kbd {
+      padding: 1px 5px;
+      border: 1px solid var(--line-strong);
+      border-radius: 4px;
+      font: 600 10px ui-monospace, monospace;
+      color: var(--muted);
+    }
 
     @media (max-width: 900px) and (min-width: 701px) {
-      body { grid-template-columns: minmax(0, 1fr) 285px; gap: 15px; padding: 15px; }
+      body { grid-template-columns: minmax(0, 1fr) 295px; gap: 15px; padding: 15px; }
       .map-stage { min-height: calc(100dvh - 30px); padding: 12px; }
-      .sidebar { padding: 18px; gap: 15px; }
-      .map-frame { width: min(100%, calc(100dvh - 70px + 48px)); }
+      .sidebar { padding: 18px; gap: 14px; }
     }
 
     @media (max-width: 700px) {
@@ -280,44 +315,24 @@
         gap: 14px;
         padding: max(10px, env(safe-area-inset-top)) 10px max(16px, env(safe-area-inset-bottom));
       }
-      .map-stage {
-        min-height: 0;
-        width: 100%;
-        padding: 8px;
-        border-radius: 17px;
-      }
-      .map-frame {
-        --axis-left: 60px;
-        --axis-top: 42px;
-        width: min(100%, calc(58dvh + 42px));
-      }
+      .map-stage { min-height: 0; width: 100%; padding: 8px; border-radius: 17px; }
+      .map-frame { --axis-left: 60px; --axis-top: 42px; }
       .axis { font-size: 9px; }
-      .axis-x .axis-tick { top: 26px; font-size: 9px; }
-      .axis-x::before { left: 3px; top: 4px; }
-      .axis-z::before { left: 5px; top: 3px; }
-      .axis-z .axis-tick { right: 9px; font-size: 9px; }
-      #mapCanvas { border-radius: 11px; }
-      /* Keep the entire panel the same width for every marker.
-         Previously align-self:center + auto width made long names like ITH
-         widen the whole sidebar while short names shrank it. */
-      .sidebar {
-        width: min(100%, 288px);
-        align-self: center;
-        padding: 18px;
-        gap: 16px;
-        border-radius: 17px;
-      }
+      .axis-x .axis-tick { top: 26px; }
+      .axis-z .axis-tick { right: 9px; }
+      .canvas-wrap { border-radius: 11px; }
+      .tool-btn { width: 40px; height: 40px; }
+      .sidebar { width: 100%; max-width: 420px; align-self: center; padding: 18px; gap: 14px; border-radius: 17px; }
       h1 { font-size: 20px; }
-      .marker-list { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
-      .marker-btn { min-height: 43px; padding: 9px 10px; font-size: 12px; }
-      .info-card { height: 186px; min-height: 186px; max-height: 186px; overflow: auto; }
+      .marker-list { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; max-height: 190px; }
+      .marker-btn { min-height: 43px; padding: 9px 10px; font-size: 12px; gap: 7px; }
+      .marker-btn .arrow { display: none; }
+      .keys { display: none; }
     }
-
     @media (max-width: 370px) {
       .marker-list { grid-template-columns: repeat(2, minmax(0, 1fr)); }
       .sidebar { padding: 15px; }
     }
-
     @media (prefers-reduced-motion: reduce) {
       *, *::before, *::after { transition-duration: .01ms !important; }
     }
@@ -328,61 +343,155 @@
     <div class="map-frame" id="mapFrame">
       <div class="axis axis-x" id="axisX" aria-hidden="true"></div>
       <div class="axis axis-z" id="axisZ" aria-hidden="true"></div>
-      <canvas id="mapCanvas" aria-label="Interactive FlatWorld map"></canvas>
+      <div class="canvas-wrap" id="canvasWrap">
+        <canvas id="mapCanvas" aria-label="Interactive FlatWorld map. Drag to pan, scroll or pinch to zoom."></canvas>
+        <div class="tools">
+          <button class="tool-btn" id="zoomIn" type="button" aria-label="Zoom in" title="Zoom in (+)">+</button>
+          <button class="tool-btn" id="zoomOut" type="button" aria-label="Zoom out" title="Zoom out (−)">−</button>
+          <button class="tool-btn" id="zoomReset" type="button" aria-label="Show whole world" title="Whole world (0)">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/></svg>
+          </button>
+          <button class="tool-btn" id="rulerBtn" type="button" aria-label="Distance ruler" aria-pressed="false" title="Distance ruler (R)">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 17 17 3l4 4L7 21z"/><path d="M7 13l2 2M10 10l2 2M13 7l2 2"/></svg>
+          </button>
+        </div>
+        <div class="hint" id="hint" hidden></div>
+        <div class="readout" id="readout">X: –, Z: –</div>
+      </div>
     </div>
   </main>
 
   <aside class="sidebar">
     <header class="heading">
-      <h1>World Map <span style="font-size:11px;color:#9eb1a1;font-weight:500">v2.6</span></h1>
-      <div class="scale-note">Scale: 1 px = 85 blocks</div>
+      <h1>World Map <small>v3.0</small></h1>
+      <div class="scale-note" id="scaleNote">Scale: 1 px = 85 blocks</div>
     </header>
 
+    <input class="search" id="search" type="search" placeholder="Search locations…" autocomplete="off" aria-label="Search locations">
     <nav class="marker-list" id="markerList" aria-label="Map locations"></nav>
 
-    <section class="info-card" id="infoCard" aria-live="polite">
-      <div class="empty">Click a marker on the map or in the list to view its name and coordinates.</div>
-    </section>
+    <section class="info-card" id="infoCard" aria-live="polite"></section>
+
+    <div class="keys"><kbd>+</kbd> <kbd>−</kbd> zoom · <kbd>0</kbd> whole world · <kbd>R</kbd> ruler · <kbd>Esc</kbd> deselect</div>
   </aside>
 
   <script>
     "use strict";
 
-    // World boundaries and original map scale.
-    const MIN_X = -30912;
-    const MAX_X = 30927;
-    const MIN_Z = -30912;
-    const MAX_Z = 30927;
-    const BLOCKS_PER_PX = 85;
+    /* =====================================================================
+       WORLD
+       ===================================================================== */
+    const MIN_X = -30912, MAX_X = 30927;
+    const MIN_Z = -30912, MAX_Z = 30927;
+    const WORLD_W = MAX_X - MIN_X;
+    const WORLD_H = MAX_Z - MIN_Z;
+    const WORLD_CX = (MIN_X + MAX_X) / 2;
+    const WORLD_CZ = (MIN_Z + MAX_Z) / 2;
+    const MAX_SCALE = 0.6;              // max zoom: px per block
+    const DEFAULT_COLOR = "#ff7a59";    // used when a marker has no "color"
 
-    const worldWidth = MAX_X - MIN_X;
-    const worldHeight = MAX_Z - MIN_Z;
-
-    const canvas = document.getElementById("mapCanvas");
-    const ctx = canvas.getContext("2d", { alpha: false });
-    const stage = document.querySelector(".map-stage");
-    const mapFrame = document.getElementById("mapFrame");
-    const axisX = document.getElementById("axisX");
-    const axisZ = document.getElementById("axisZ");
-    const markerListEl = document.getElementById("markerList");
-    const infoCardEl = document.getElementById("infoCard");
-
-    // Original marker data retained.
+    /* =====================================================================
+       MARKERS — add new locations here. Fields:
+         id        unique, lowercase, no spaces
+         shortName label on the map
+         fullName  name shown in the info card
+         x, z      world coordinates
+         color     (optional) dot color
+         flag      (optional) image file shown in the info card
+       ===================================================================== */
     const markers = [
-      { id: "zero", shortName: "0", fullName: "Zero point (X: 0, Z: 0)", x: 0, z: 0, color: "#FF0000" },
-      { id: "spw", shortName: "SPW", fullName: "Current spawn", x: -2208, z: 10599, color: "#20B2AA" },
+      { id: "spw", shortName: "SPW", fullName: "Current spawn", x: 0, z: 0, color: "#20B2AA" },
       { id: "ith", shortName: "ITH", fullName: "Irpinśka Terrytoriaľna Hromada", x: -23105, z: 12000, flag: "ithflag.png" },
       { id: "srb", shortName: "SRB", fullName: "Serbia", x: 29679, z: 10610, flag: "serbia.png", color: "#00008B" },
       { id: "pks", shortName: "PKS", fullName: "Pakistan", x: 24364, z: 8529, flag: "pakistan.png", color: "#006400" },
       { id: "eml", shortName: "EML", fullName: "Emasland", x: -17023, z: 25780, flag: "emaslandflag.png", color: "#FFFF00" },
-      { id: "bgt", shortName: "BGT", fullName: "Bigtopia", x: -1605, z: 21090, color: "#4682B4" }
+      { id: "bgt", shortName: "BGT", fullName: "Bigtopia", x: -1605, z: 21090, flag: "bigtopia.png", color: "#4682B4" },
+      { id: "sat", shortName: "SAT", fullName: "Savania town", x: 12413, z: -14605, flag: "flag.png", color: "#32CD32" },
+      { id: "alc", shortName: "ALC", fullName: "Albertson city", x: -20391, z: -8924, flag: "albertson.png", color: "#F5F5DC" },
+      { id: "vci", shortName: "VCI", fullName: "V-city", x: -3571, z: -16746, color: "#00FF7F" }
     ];
 
-    let selectedMarkerId = null;
-    let viewWidth = 0;
-    let viewHeight = 0;
-    let currentScale = 1 / BLOCKS_PER_PX;
+    /* =====================================================================
+       STATE
+       ===================================================================== */
+    const $ = id => document.getElementById(id);
+    const canvas = $("mapCanvas");
+    const ctx = canvas.getContext("2d", { alpha: false });
+    const stage = document.querySelector(".map-stage");
+    const mapFrame = $("mapFrame");
+    const canvasWrap = $("canvasWrap");
+    const axisX = $("axisX");
+    const axisZ = $("axisZ");
+    const markerListEl = $("markerList");
+    const infoCardEl = $("infoCard");
+    const readoutEl = $("readout");
+    const hintEl = $("hint");
+    const scaleNoteEl = $("scaleNote");
+    const rulerBtn = $("rulerBtn");
+    const searchEl = $("search");
 
+    let side = 0;                        // canvas size in CSS px (square)
+    let minScale = 0.01;                 // fit-whole-world scale
+    const view = { cx: WORLD_CX, cz: WORLD_CZ, scale: 0.01 };
+    let selectedId = null;
+    let dirty = true, axesDirty = true;
+    let anim = null;
+    let firstLayout = true;
+    const ruler = { on: false, a: null, b: null };
+
+    /* ---------- coordinate transforms ---------- */
+    function w2s(x, z) {
+      return { px: (x - view.cx) * view.scale + side / 2, py: (z - view.cz) * view.scale + side / 2 };
+    }
+    function s2w(px, py) {
+      return { x: (px - side / 2) / view.scale + view.cx, z: (py - side / 2) / view.scale + view.cz };
+    }
+    function clampView() {
+      const half = side / 2 / view.scale;
+      view.cx = half * 2 >= WORLD_W ? WORLD_CX : Math.min(MAX_X - half, Math.max(MIN_X + half, view.cx));
+      view.cz = half * 2 >= WORLD_H ? WORLD_CZ : Math.min(MAX_Z - half, Math.max(MIN_Z + half, view.cz));
+    }
+    function viewChanged() { dirty = true; axesDirty = true; }
+    function zoomAt(px, py, newScale) {
+      newScale = Math.min(MAX_SCALE, Math.max(minScale, newScale));
+      const w = s2w(px, py);
+      view.scale = newScale;
+      view.cx = w.x - (px - side / 2) / newScale;
+      view.cz = w.z - (py - side / 2) / newScale;
+      clampView();
+      viewChanged();
+    }
+
+    function niceStep(target) {
+      const pow = Math.pow(10, Math.floor(Math.log10(target)));
+      for (const m of [1, 2, 5, 10]) if (m * pow >= target) return m * pow;
+      return 10 * pow;
+    }
+    const fmt = n => Math.round(n).toLocaleString("en-US");
+
+    /* ---------- animation (fly-to) ---------- */
+    function flyTo(cx, cz, scale, ms = 600) {
+      const from = { cx: view.cx, cz: view.cz, scale: view.scale };
+      const to = { cx, cz, scale: Math.min(MAX_SCALE, Math.max(minScale, scale)) };
+      const t0 = performance.now();
+      const ease = t => 1 - Math.pow(1 - t, 3);
+      const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+      anim = now => {
+        const t = reduce ? 1 : Math.min(1, (now - t0) / ms);
+        const k = ease(t);
+        // interpolate zoom in log-space so it feels even
+        view.scale = Math.exp(Math.log(from.scale) + (Math.log(to.scale) - Math.log(from.scale)) * k);
+        view.cx = from.cx + (to.cx - from.cx) * k;
+        view.cz = from.cz + (to.cz - from.cz) * k;
+        clampView();
+        viewChanged();
+        if (t >= 1) anim = null;
+      };
+    }
+
+    /* =====================================================================
+       LAYOUT
+       ===================================================================== */
     function resizeCanvas() {
       const isMobile = window.matchMedia("(max-width: 700px)").matches;
       const stageStyle = getComputedStyle(stage);
@@ -392,17 +501,19 @@
       const axisLeft = parseFloat(frameStyle.getPropertyValue("--axis-left"));
       const axisTop = parseFloat(frameStyle.getPropertyValue("--axis-top"));
 
-      const availableWidth = Math.max(180, stage.clientWidth - padX - axisLeft);
+      const availableWidth = Math.max(180, stage.clientWidth - padX - axisLeft - 2);
       const availableHeight = isMobile
         ? window.innerHeight * 0.58
-        : stage.clientHeight - padY - axisTop;
+        : stage.clientHeight - padY - axisTop - 2;
 
-      const side = Math.max(180, Math.floor(Math.min(availableWidth, availableHeight)));
-      viewWidth = side;
-      viewHeight = side;
+      const newSide = Math.max(180, Math.floor(Math.min(availableWidth, availableHeight)));
+      const zoomFactor = firstLayout ? 1 : view.scale / minScale;
+      side = newSide;
 
-      mapFrame.style.width = (side + axisLeft) + "px";
-      mapFrame.style.height = (side + axisTop) + "px";
+      mapFrame.style.width = (side + axisLeft + 2) + "px";
+      mapFrame.style.height = (side + axisTop + 2) + "px";
+      canvasWrap.style.width = side + 2 + "px";
+      canvasWrap.style.height = side + 2 + "px";
 
       const dpr = Math.min(window.devicePixelRatio || 1, 3);
       canvas.style.width = side + "px";
@@ -411,240 +522,533 @@
       canvas.height = Math.round(side * dpr);
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
 
-      currentScale = viewWidth / worldWidth;
-      renderAxes();
-      drawMap();
+      minScale = side / WORLD_W;
+      view.scale = Math.min(MAX_SCALE, Math.max(minScale, minScale * zoomFactor));
+      clampView();
+      firstLayout = false;
+      viewChanged();
     }
 
+    /* =====================================================================
+       AXES (HTML gutters outside the map)
+       ===================================================================== */
     function renderAxes() {
       axisX.replaceChildren();
       axisZ.replaceChildren();
+      const step = niceStep(90 / view.scale);
+      const tl = s2w(0, 0), br = s2w(side, side);
 
-      const values = [-30000, -20000, -10000, 0, 10000, 20000, 30000];
+      for (let v = Math.ceil(Math.max(tl.x, MIN_X) / step) * step; v <= Math.min(br.x, MAX_X); v += step) {
+        const { px } = w2s(v, 0);
+        if (px < 14 || px > side - 14) continue;
+        const t = document.createElement("span");
+        t.className = "axis-tick";
+        t.textContent = String(v);
+        t.style.left = px + "px";
+        axisX.appendChild(t);
+      }
+      for (let v = Math.ceil(Math.max(tl.z, MIN_Z) / step) * step; v <= Math.min(br.z, MAX_Z); v += step) {
+        const { py } = w2s(0, v);
+        if (py < 20 || py > side - 10) continue;
+        const t = document.createElement("span");
+        t.className = "axis-tick";
+        t.textContent = String(v);
+        t.style.top = py + "px";
+        axisZ.appendChild(t);
+      }
 
-      values.forEach((value, index) => {
-        const x = (value - MIN_X) / worldWidth * viewWidth;
-        const showX = viewWidth >= 420 || index % 2 === 0;
-        if (showX) {
-          const xTick = document.createElement("span");
-          xTick.className = "axis-tick";
-          xTick.textContent = String(value);
-          xTick.style.left = Math.max(0, Math.min(viewWidth, x)) + "px";
-          if (x < 34) xTick.style.transform = "translateX(0)";
-          else if (x > viewWidth - 34) xTick.style.transform = "translateX(-100%)";
-          axisX.appendChild(xTick);
+      const bpp = 1 / view.scale;
+      scaleNoteEl.textContent = "Scale: 1 px ≈ " + (bpp >= 10 ? Math.round(bpp) : bpp.toFixed(1)) + " blocks";
+    }
+
+    /* =====================================================================
+       DRAWING
+       ===================================================================== */
+    function strokeLabel(text, x, y, size, weight = 700, align = "left") {
+      ctx.font = `${weight} ${size}px system-ui, -apple-system, sans-serif`;
+      ctx.textAlign = align;
+      ctx.textBaseline = "middle";
+      ctx.lineWidth = 3;
+      ctx.lineJoin = "round";
+      ctx.strokeStyle = "rgba(18, 30, 19, .88)";
+      ctx.strokeText(text, x, y);
+      ctx.fillStyle = "#fff";
+      ctx.fillText(text, x, y);
+    }
+
+    function gridLines(step, color, width, tl, br) {
+      ctx.strokeStyle = color;
+      ctx.lineWidth = width;
+      ctx.beginPath();
+      for (let v = Math.ceil(tl.x / step) * step; v <= br.x; v += step) {
+        if (v === 0) continue;
+        const x = Math.round(w2s(v, 0).px) + .5;
+        ctx.moveTo(x, 0); ctx.lineTo(x, side);
+      }
+      for (let v = Math.ceil(tl.z / step) * step; v <= br.z; v += step) {
+        if (v === 0) continue;
+        const y = Math.round(w2s(0, v).py) + .5;
+        ctx.moveTo(0, y); ctx.lineTo(side, y);
+      }
+      ctx.stroke();
+    }
+
+    function drawMap(now) {
+      // outside the world
+      ctx.fillStyle = "#0e1a12";
+      ctx.fillRect(0, 0, side, side);
+
+      const a = w2s(MIN_X, MIN_Z), b = w2s(MAX_X, MAX_Z);
+      ctx.fillStyle = "#4e9a46";
+      ctx.fillRect(a.px, a.py, b.px - a.px, b.py - a.py);
+
+      ctx.save();
+      ctx.beginPath();
+      ctx.rect(a.px, a.py, b.px - a.px, b.py - a.py);
+      ctx.clip();
+
+      const tl = s2w(0, 0), br = s2w(side, side);
+      const step = niceStep(90 / view.scale);
+      const minor = step / 5;
+      if (minor * view.scale >= 14) gridLines(minor, "rgba(255,255,255,.06)", 1, tl, br);
+      gridLines(step, "rgba(255,255,255,.17)", 1, tl, br);
+
+      // axes through 0
+      const o = w2s(0, 0);
+      ctx.strokeStyle = "rgba(255,255,255,.40)";
+      ctx.lineWidth = 1.5;
+      ctx.beginPath();
+      ctx.moveTo(Math.round(o.px) + .5, 0); ctx.lineTo(Math.round(o.px) + .5, side);
+      ctx.moveTo(0, Math.round(o.py) + .5); ctx.lineTo(side, Math.round(o.py) + .5);
+      ctx.stroke();
+      ctx.restore();
+
+      // world border
+      ctx.strokeStyle = "rgba(255,255,255,.35)";
+      ctx.lineWidth = 1.5;
+      ctx.strokeRect(a.px, a.py, b.px - a.px, b.py - a.py);
+
+      drawRuler();
+      drawMarkers(now);
+      drawScaleBar();
+    }
+
+    function drawMarkers(now) {
+      const zoomedIn = view.scale > minScale * 3;
+      const baseSize = Math.max(11, Math.min(13, side / 48));
+      markers.forEach(m => {
+        const { px, py } = w2s(m.x, m.z);
+        if (px < -60 || py < -30 || px > side + 60 || py > side + 30) return;
+        const selected = m.id === selectedId;
+        const radius = selected ? 6.5 : 4.8;
+
+        if (selected) {
+          const phase = (now % 1600) / 1600;
+          ctx.beginPath();
+          ctx.arc(px, py, radius + 3 + phase * 16, 0, Math.PI * 2);
+          ctx.strokeStyle = `rgba(184, 255, 173, ${0.7 * (1 - phase)})`;
+          ctx.lineWidth = 2;
+          ctx.stroke();
         }
 
-        const y = (value - MIN_Z) / worldHeight * viewHeight;
-        const zTick = document.createElement("span");
-        zTick.className = "axis-tick";
-        zTick.textContent = String(value);
-        zTick.style.top = Math.max(20, Math.min(viewHeight - 10, y)) + "px";
-        axisZ.appendChild(zTick);
-      });
-    }
-
-    function worldToCanvas(x, z) {
-      return {
-        px: (x - MIN_X) * currentScale,
-        py: (z - MIN_Z) * currentScale
-      };
-    }
-
-    function drawCoordinateTag(text, x, y, align, baseline) {
-      ctx.save();
-      ctx.font = "500 11px system-ui, -apple-system, sans-serif";
-      const width = ctx.measureText(text).width;
-      const height = 16;
-      let left = align === "center" ? x - width / 2 : align === "right" ? x - width : x;
-      let top = baseline === "bottom" ? y - height : y;
-
-      left = Math.max(5, Math.min(viewWidth - width - 5, left));
-      top = Math.max(4, Math.min(viewHeight - height - 4, top));
-
-      // Small translucent backing keeps coordinates readable over the grid.
-      ctx.fillStyle = "rgba(28, 66, 31, .48)";
-      ctx.beginPath();
-      ctx.roundRect(left - 3, top - 1, width + 6, height, 4);
-      ctx.fill();
-
-      ctx.fillStyle = "rgba(245, 255, 242, .88)";
-      ctx.textAlign = "left";
-      ctx.textBaseline = "top";
-      ctx.fillText(text, left, top + 1);
-      ctx.restore();
-    }
-
-    function drawMap() {
-      ctx.clearRect(0, 0, viewWidth, viewHeight);
-      ctx.fillStyle = "#4e9a46";
-      ctx.fillRect(0, 0, viewWidth, viewHeight);
-
-      // Subtle inner edge for a clean map surface.
-      ctx.strokeStyle = "rgba(255,255,255,.18)";
-      ctx.lineWidth = 1;
-      ctx.strokeRect(.5, .5, viewWidth - 1, viewHeight - 1);
-
-      const gridStep = 10000;
-      const gridValues = [];
-      for (let value = -30000; value <= 30000; value += gridStep) gridValues.push(value);
-
-      // Grid lines.
-      gridValues.forEach(value => {
-        const x = worldToCanvas(value, 0).px;
-        const y = worldToCanvas(0, value).py;
-
-        ctx.beginPath();
-        ctx.moveTo(x, 0);
-        ctx.lineTo(x, viewHeight);
-        ctx.strokeStyle = value === 0 ? "rgba(255,255,255,.38)" : "rgba(255,255,255,.15)";
-        ctx.lineWidth = value === 0 ? 1.5 : 1;
-        ctx.stroke();
-
-        ctx.beginPath();
-        ctx.moveTo(0, y);
-        ctx.lineTo(viewWidth, y);
-        ctx.strokeStyle = value === 0 ? "rgba(255,255,255,.38)" : "rgba(255,255,255,.15)";
-        ctx.lineWidth = value === 0 ? 1.5 : 1;
-        ctx.stroke();
-      });
-
-      // Coordinate values are rendered in separate HTML axis gutters,
-      // outside the green map area, so they cannot overlap map markers.
-      // Marker dots and names.
-      markers.forEach(marker => {
-        const { px, py } = worldToCanvas(marker.x, marker.z);
-        const selected = marker.id === selectedMarkerId;
-        const radius = selected ? 5.5 : 4.5;
-
-        ctx.save();
         ctx.beginPath();
         ctx.arc(px, py, radius, 0, Math.PI * 2);
-        ctx.fillStyle = marker.color || "#111";
+        ctx.fillStyle = m.color || DEFAULT_COLOR;
         ctx.fill();
-        ctx.lineWidth = selected ? 2 : 1.5;
+        ctx.lineWidth = selected ? 2.2 : 1.6;
         ctx.strokeStyle = selected ? "#b8ffad" : "#fff";
         ctx.stroke();
 
-        const fontSize = Math.max(11, Math.min(13, viewWidth / 48));
-        ctx.font = `700 ${fontSize}px system-ui, -apple-system, sans-serif`;
-        ctx.textBaseline = "middle";
-        ctx.textAlign = "left";
-        const labelWidth = ctx.measureText(marker.shortName).width;
+        ctx.save();
+        const w = (ctx.font = `700 ${baseSize}px system-ui`, ctx.measureText(m.shortName).width);
         const gap = radius + 6;
-        let labelX = px + gap;
-        if (labelX + labelWidth + 5 > viewWidth) labelX = px - gap - labelWidth;
-        labelX = Math.max(5, Math.min(viewWidth - labelWidth - 5, labelX));
-
-        ctx.lineWidth = 3;
-        ctx.lineJoin = "round";
-        ctx.strokeStyle = "rgba(18, 30, 19, .88)";
-        ctx.strokeText(marker.shortName, labelX, py);
-        ctx.fillStyle = "#fff";
-        ctx.fillText(marker.shortName, labelX, py);
+        const flip = px + gap + w + 5 > side;
+        strokeLabel(m.shortName, flip ? px - gap : px + gap, py, baseSize, 700, flip ? "right" : "left");
+        if (zoomedIn || selected) {
+          strokeLabel(m.fullName, px, py + radius + 13, Math.max(10, baseSize - 2), 600, "center");
+        }
         ctx.restore();
       });
     }
 
-    function selectMarker(id) {
-      selectedMarkerId = id;
-      const marker = markers.find(item => item.id === id);
-
-      markerListEl.querySelectorAll(".marker-btn").forEach(button => {
-        const active = button.dataset.id === id;
-        button.classList.toggle("active", active);
-        button.setAttribute("aria-pressed", String(active));
-      });
-
-      infoCardEl.replaceChildren();
-
-      if (!marker) {
-        const empty = document.createElement("div");
-        empty.className = "empty";
-        empty.textContent = "Click a marker on the map or in the list to view its name and coordinates.";
-        infoCardEl.appendChild(empty);
-      } else {
-        const flagSlot = document.createElement("div");
-        flagSlot.className = "flag-slot";
-        if (marker.flag) {
-          const image = document.createElement("img");
-          image.src = marker.flag;
-          image.alt = marker.shortName + " flag";
-          image.onerror = () => image.remove();
-          flagSlot.appendChild(image);
-        }
-        infoCardEl.appendChild(flagSlot);
-
-        const title = document.createElement("div");
-        title.className = "info-title";
-        title.textContent = marker.fullName;
-
-        const shortName = document.createElement("div");
-        shortName.className = "info-coords";
-        shortName.textContent = "Short name: " + marker.shortName;
-
-        const coords = document.createElement("div");
-        coords.className = "info-coords";
-        coords.textContent = `X: ${marker.x}, Z: ${marker.z}`;
-
-        infoCardEl.append(title, shortName, coords);
+    function drawRuler() {
+      if (!ruler.a) return;
+      const A = w2s(ruler.a.x, ruler.a.z);
+      ctx.save();
+      ctx.fillStyle = "#fff";
+      ctx.strokeStyle = "#ffd36b";
+      ctx.lineWidth = 2;
+      ctx.beginPath(); ctx.arc(A.px, A.py, 4, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+      if (ruler.b) {
+        const B = w2s(ruler.b.x, ruler.b.z);
+        ctx.setLineDash([8, 6]);
+        ctx.beginPath(); ctx.moveTo(A.px, A.py); ctx.lineTo(B.px, B.py); ctx.stroke();
+        ctx.setLineDash([]);
+        ctx.beginPath(); ctx.arc(B.px, B.py, 4, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+        const d = Math.hypot(ruler.b.x - ruler.a.x, ruler.b.z - ruler.a.z);
+        const label = `${fmt(d)} blocks`;
+        ctx.font = "600 12px system-ui, sans-serif";
+        const tw = ctx.measureText(label).width;
+        let mx = (A.px + B.px) / 2, my = (A.py + B.py) / 2 - 16;
+        mx = Math.max(tw / 2 + 10, Math.min(side - tw / 2 - 10, mx));
+        my = Math.max(16, Math.min(side - 16, my));
+        ctx.fillStyle = "rgba(12, 22, 15, .85)";
+        ctx.beginPath(); ctx.roundRect(mx - tw / 2 - 8, my - 11, tw + 16, 22, 7); ctx.fill();
+        ctx.fillStyle = "#ffd36b";
+        ctx.textAlign = "center"; ctx.textBaseline = "middle";
+        ctx.fillText(label, mx, my);
       }
-
-      drawMap();
+      ctx.restore();
     }
 
-    function renderMarkerButtons() {
-      markerListEl.replaceChildren();
-      markers.forEach(marker => {
-        const button = document.createElement("button");
-        button.type = "button";
-        button.className = "marker-btn";
-        button.dataset.id = marker.id;
-        button.setAttribute("aria-pressed", "false");
+    function drawScaleBar() {
+      const worldLen = niceStep(110 / view.scale);
+      const len = worldLen * view.scale;
+      const x1 = side - 14, x0 = x1 - len, y = side - 16;
+      ctx.save();
+      ctx.strokeStyle = "rgba(10, 20, 12, .9)";
+      ctx.lineWidth = 5; ctx.lineCap = "round";
+      ctx.beginPath(); ctx.moveTo(x0, y); ctx.lineTo(x1, y); ctx.stroke();
+      ctx.strokeStyle = "#fff"; ctx.lineWidth = 2;
+      ctx.beginPath(); ctx.moveTo(x0, y); ctx.lineTo(x1, y); ctx.stroke();
+      strokeLabel(fmt(worldLen) + " blocks", x1, y - 12, 11, 600, "right");
+      ctx.restore();
+    }
 
+    function loop(now) {
+      if (anim) anim(now);
+      if (axesDirty) { renderAxes(); axesDirty = false; }
+      if (dirty || selectedId) { drawMap(now); dirty = false; }
+      requestAnimationFrame(loop);
+    }
+
+    /* =====================================================================
+       SELECTION / SIDEBAR
+       ===================================================================== */
+    function buildMarkerButtons() {
+      markerListEl.replaceChildren();
+      markers.forEach(m => {
+        const btn = document.createElement("button");
+        btn.type = "button";
+        btn.className = "marker-btn";
+        btn.dataset.id = m.id;
+        btn.dataset.search = (m.shortName + " " + m.fullName).toLowerCase();
+        btn.setAttribute("aria-pressed", "false");
+        btn.title = m.fullName;
+
+        const dot = document.createElement("span");
+        dot.className = "dot";
+        dot.style.background = m.color || DEFAULT_COLOR;
         const name = document.createElement("span");
-        name.textContent = marker.shortName;
+        name.className = "name";
+        name.textContent = m.shortName;
         const arrow = document.createElement("span");
         arrow.className = "arrow";
         arrow.textContent = "↗";
 
-        button.append(name, arrow);
-        button.addEventListener("click", () => selectMarker(marker.id));
-        markerListEl.appendChild(button);
+        btn.append(dot, name, arrow);
+        btn.addEventListener("click", () => selectMarker(m.id, { fly: true }));
+        markerListEl.appendChild(btn);
       });
+      const none = document.createElement("div");
+      none.className = "no-results";
+      none.id = "noResults";
+      none.textContent = "Nothing found.";
+      none.hidden = true;
+      markerListEl.appendChild(none);
     }
 
-    canvas.addEventListener("click", event => {
-      const rect = canvas.getBoundingClientRect();
-      const clickX = (event.clientX - rect.left) * (viewWidth / rect.width);
-      const clickY = (event.clientY - rect.top) * (viewHeight / rect.height);
-
-      let closest = null;
-      let closestDistance = 16;
-
-      markers.forEach(marker => {
-        const { px, py } = worldToCanvas(marker.x, marker.z);
-        const distance = Math.hypot(clickX - px, clickY - py);
-        if (distance < closestDistance) {
-          closest = marker;
-          closestDistance = distance;
-        }
+    function filterMarkers() {
+      const q = searchEl.value.trim().toLowerCase();
+      let shown = 0;
+      markerListEl.querySelectorAll(".marker-btn").forEach(btn => {
+        const match = !q || btn.dataset.search.includes(q);
+        btn.hidden = !match;
+        if (match) shown++;
       });
+      $("noResults").hidden = shown > 0;
+    }
 
-      selectMarker(closest ? closest.id : null);
+    function renderInfo(m) {
+      infoCardEl.replaceChildren();
+      if (!m) {
+        const empty = document.createElement("div");
+        empty.className = "empty";
+        empty.textContent = "Click a marker on the map or in the list to view its name and coordinates. Drag to move the map, scroll or pinch to zoom.";
+        infoCardEl.appendChild(empty);
+        return;
+      }
+
+      const flagSlot = document.createElement("div");
+      flagSlot.className = "flag-slot";
+      if (m.flag) {
+        const img = document.createElement("img");
+        img.src = m.flag;
+        img.alt = m.shortName + " flag";
+        img.onerror = () => img.remove();
+        flagSlot.appendChild(img);
+      }
+
+      const title = document.createElement("div");
+      title.className = "info-title";
+      title.textContent = m.fullName;
+
+      const lines = document.createElement("div");
+      lines.className = "info-coords";
+      const addLine = (label, value) => {
+        const row = document.createElement("div");
+        const b = document.createElement("b");
+        b.textContent = value;
+        row.append(label + " ", b);
+        lines.appendChild(row);
+      };
+      addLine("Short name:", m.shortName);
+      addLine("Overworld:", `X ${m.x}, Z ${m.z}`);
+      const dist = Math.hypot(m.x, m.z);
+      if (dist < 1) {
+        addLine("Position:", "world origin");
+      } else {
+        addLine("From 0,0:", `${fmt(dist)} blocks`);
+      }
+
+      const actions = document.createElement("div");
+      actions.className = "actions";
+      const focus = document.createElement("button");
+      focus.type = "button";
+      focus.className = "action-btn";
+      focus.textContent = "Zoom to";
+      focus.addEventListener("click", () => focusMarker(m));
+      const copy = document.createElement("button");
+      copy.type = "button";
+      copy.className = "action-btn";
+      copy.textContent = "Copy coords";
+      copy.addEventListener("click", () => copyText(`${m.x} ${m.z}`, copy, "Copy coords"));
+      actions.append(focus, copy);
+
+      infoCardEl.append(flagSlot, title, lines, actions);
+    }
+
+    function copyText(text, btn, original) {
+      const done = ok => {
+        btn.textContent = ok ? "Copied ✓" : "Copy failed";
+        setTimeout(() => { btn.textContent = original; }, 1400);
+      };
+      if (navigator.clipboard && window.isSecureContext) {
+        navigator.clipboard.writeText(text).then(() => done(true), () => done(false));
+      } else {
+        const ta = document.createElement("textarea");
+        ta.value = text;
+        ta.style.cssText = "position:fixed;opacity:0";
+        document.body.appendChild(ta);
+        ta.select();
+        let ok = false;
+        try { ok = document.execCommand("copy"); } catch (e) {}
+        ta.remove();
+        done(ok);
+      }
+    }
+
+    function focusMarker(m) {
+      flyTo(m.x, m.z, Math.max(view.scale, minScale * 6));
+    }
+
+    function selectMarker(id, opts = {}) {
+      selectedId = id;
+      const m = markers.find(item => item.id === id) || null;
+      if (!m) selectedId = null;
+
+      markerListEl.querySelectorAll(".marker-btn").forEach(btn => {
+        const active = btn.dataset.id === selectedId;
+        btn.classList.toggle("active", active);
+        btn.setAttribute("aria-pressed", String(active));
+      });
+      renderInfo(m);
+      try { history.replaceState(null, "", m ? "#" + m.id : location.pathname + location.search); } catch (e) {}
+      if (m && opts.fly) focusMarker(m);
+      dirty = true;
+    }
+
+    /* =====================================================================
+       RULER
+       ===================================================================== */
+    function updateHint() {
+      if (!ruler.on) { hintEl.hidden = true; return; }
+      hintEl.hidden = false;
+      hintEl.textContent = !ruler.a ? "Ruler: click the start point (or a marker)"
+        : !ruler.b ? "Ruler: click the end point"
+        : "Ruler: click again to start a new measurement";
+    }
+    function setRuler(on) {
+      ruler.on = on;
+      ruler.a = ruler.b = null;
+      rulerBtn.classList.toggle("active", on);
+      rulerBtn.setAttribute("aria-pressed", String(on));
+      canvas.classList.toggle("ruler", on);
+      updateHint();
+      dirty = true;
+    }
+
+    /* =====================================================================
+       POINTER INPUT: pan, pinch, wheel, tap
+       ===================================================================== */
+    const pointers = new Map();
+    let drag = null, pinch = null;
+
+    function localPos(e) {
+      const r = canvas.getBoundingClientRect();
+      return { x: (e.clientX - r.left) * (side / r.width), y: (e.clientY - r.top) * (side / r.height) };
+    }
+    function nearestMarker(px, py) {
+      let best = null, bestD = 18;
+      markers.forEach(m => {
+        const p = w2s(m.x, m.z);
+        const d = Math.hypot(px - p.px, py - p.py);
+        if (d < bestD) { best = m; bestD = d; }
+      });
+      return best;
+    }
+    function updateReadout(px, py) {
+      const w = s2w(px, py);
+      if (w.x < MIN_X || w.x > MAX_X || w.z < MIN_Z || w.z > MAX_Z) {
+        readoutEl.textContent = "X: –, Z: –";
+      } else {
+        readoutEl.textContent = `X: ${Math.round(w.x)}, Z: ${Math.round(w.z)}`;
+      }
+    }
+
+    canvas.addEventListener("pointerdown", e => {
+      canvas.setPointerCapture(e.pointerId);
+      pointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
+      anim = null;
+      if (pointers.size === 1) {
+        drag = { sx: e.clientX, sy: e.clientY, cx: view.cx, cz: view.cz, moved: false };
+      } else if (pointers.size === 2) {
+        drag = null;
+        const [p1, p2] = [...pointers.values()];
+        pinch = { last: Math.hypot(p1.x - p2.x, p1.y - p2.y) };
+      }
     });
 
-    renderMarkerButtons();
-    selectMarker(null);
+    canvas.addEventListener("pointermove", e => {
+      const pos = localPos(e);
+      if (pointers.has(e.pointerId)) pointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
 
-    // ResizeObserver catches layout changes as well as device rotation.
-    if ("ResizeObserver" in window) {
-      new ResizeObserver(resizeCanvas).observe(stage);
-    } else {
-      window.addEventListener("resize", resizeCanvas);
+      if (pinch && pointers.size === 2) {
+        const [p1, p2] = [...pointers.values()];
+        const dist = Math.hypot(p1.x - p2.x, p1.y - p2.y);
+        const r = canvas.getBoundingClientRect();
+        const mx = ((p1.x + p2.x) / 2 - r.left) * (side / r.width);
+        const my = ((p1.y + p2.y) / 2 - r.top) * (side / r.height);
+        if (pinch.last > 0) zoomAt(mx, my, view.scale * dist / pinch.last);
+        pinch.last = dist;
+        return;
+      }
+
+      if (drag) {
+        const dx = e.clientX - drag.sx, dy = e.clientY - drag.sy;
+        if (!drag.moved && Math.hypot(dx, dy) > 5) {
+          drag.moved = true;
+          canvas.classList.add("dragging");
+        }
+        if (drag.moved) {
+          view.cx = drag.cx - dx / view.scale;
+          view.cz = drag.cz - dy / view.scale;
+          clampView();
+          viewChanged();
+        }
+      }
+
+      if (e.pointerType === "mouse" && !drag?.moved) {
+        updateReadout(pos.x, pos.y);
+        canvas.classList.toggle("pointer", !ruler.on && !!nearestMarker(pos.x, pos.y));
+      } else if (drag?.moved && e.pointerType === "mouse") {
+        updateReadout(pos.x, pos.y);
+      }
+    });
+
+    function endPointer(e) {
+      const wasTap = drag && !drag.moved && pointers.size === 1 && e.type === "pointerup";
+      pointers.delete(e.pointerId);
+      if (pointers.size < 2) pinch = null;
+      if (wasTap) handleTap(localPos(e));
+      if (pointers.size === 0) { drag = null; canvas.classList.remove("dragging"); }
     }
+    canvas.addEventListener("pointerup", endPointer);
+    canvas.addEventListener("pointercancel", endPointer);
+
+    canvas.addEventListener("wheel", e => {
+      e.preventDefault();
+      const pos = localPos(e);
+      anim = null;
+      zoomAt(pos.x, pos.y, view.scale * Math.exp(-e.deltaY * (e.deltaMode === 1 ? 0.05 : 0.0015)));
+      updateReadout(pos.x, pos.y);
+    }, { passive: false });
+
+    canvas.addEventListener("dblclick", e => {
+      const pos = localPos(e);
+      const w = s2w(pos.x, pos.y);
+      flyTo(w.x, w.z, view.scale * 2.5, 400);
+    });
+
+    function handleTap(pos) {
+      updateReadout(pos.x, pos.y);
+      const near = nearestMarker(pos.x, pos.y);
+
+      if (ruler.on) {
+        const p = near ? { x: near.x, z: near.z } : s2w(pos.x, pos.y);
+        if (!ruler.a || ruler.b) { ruler.a = p; ruler.b = null; }
+        else ruler.b = p;
+        updateHint();
+        dirty = true;
+        return;
+      }
+      selectMarker(near ? near.id : null);
+    }
+
+    /* =====================================================================
+       CONTROLS
+       ===================================================================== */
+    const zoomCenter = factor => zoomAt(side / 2, side / 2, view.scale * factor);
+    $("zoomIn").addEventListener("click", () => zoomCenter(1.7));
+    $("zoomOut").addEventListener("click", () => zoomCenter(1 / 1.7));
+    $("zoomReset").addEventListener("click", () => flyTo(WORLD_CX, WORLD_CZ, minScale));
+    rulerBtn.addEventListener("click", () => setRuler(!ruler.on));
+    searchEl.addEventListener("input", filterMarkers);
+
+    document.addEventListener("keydown", e => {
+      if (e.target === searchEl) {
+        if (e.key === "Escape") { searchEl.value = ""; filterMarkers(); searchEl.blur(); }
+        return;
+      }
+      if (e.ctrlKey || e.metaKey || e.altKey) return;
+      if (e.key === "+" || e.key === "=") zoomCenter(1.5);
+      else if (e.key === "-" || e.key === "_") zoomCenter(1 / 1.5);
+      else if (e.key === "0") flyTo(WORLD_CX, WORLD_CZ, minScale);
+      else if (e.key === "r" || e.key === "R") setRuler(!ruler.on);
+      else if (e.key === "Escape") { if (ruler.on) setRuler(false); else selectMarker(null); }
+    });
+
+    /* =====================================================================
+       INIT
+       ===================================================================== */
+    buildMarkerButtons();
+    renderInfo(null);
+
+    if ("ResizeObserver" in window) new ResizeObserver(resizeCanvas).observe(stage);
+    else window.addEventListener("resize", resizeCanvas);
     window.addEventListener("orientationchange", () => setTimeout(resizeCanvas, 100));
     resizeCanvas();
+
+    // Open a marker directly via URL, e.g. map.html#srb
+    const hashId = decodeURIComponent(location.hash.slice(1));
+    if (hashId && markers.some(m => m.id === hashId)) {
+      selectMarker(hashId);
+      const m = markers.find(x => x.id === hashId);
+      view.cx = m.x; view.cz = m.z; view.scale = Math.min(MAX_SCALE, minScale * 4);
+      clampView(); viewChanged();
+    }
+
+    requestAnimationFrame(loop);
   </script>
 </body>
 </html>
